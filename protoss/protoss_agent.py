@@ -15,6 +15,8 @@ import random
 #Main class
 class ProtossAgent(base_agent.BaseAgent):
     
+    step_number = 0
+    
     #Initializes variables ??????
     def __init__(self):
         super(ProtossAgent, self).__init__()
@@ -33,7 +35,7 @@ class ProtossAgent(base_agent.BaseAgent):
         
         return False
     
-    #selects units with given unit type; returns an array of selected units
+    #????????
     def get_units_by_type(self, obs, unit_type):
         return [unit for unit in obs.observation.feature_units
                         if unit.unit_type == unit_type]
@@ -61,6 +63,78 @@ class ProtossAgent(base_agent.BaseAgent):
             else:
                 self.attack_coordinates = (12, 16)            
         
+        
+        self.step_number+=1
+        
+        #Manage Economy
+        if self.step_number%32 == 0:
+            
+            #Select Nexus
+            nexi = self.get_units_by_type(obs, units.Protoss.Nexus)
+            
+            if len(nexi) > 0:
+                nexus = random.choice(nexi)
+                
+                return actions.FUNCTIONS.select_point("select_all_type", (nexus.x,
+                                                                          nexus.y))
+            
+        if self.step_number%32 == 1:
+            
+            #Train Probes
+            #Fix unit queue
+            if self.unit_type_is_selected(obs, units.Protoss.Nexus):
+                if self.can_do(obs, actions.FUNCTIONS.Train_Probe_quick.id):
+                    return actions.FUNCTIONS.Train_Probe_quick("now")
+        
+        
+        if self.step_number%32 == 2:
+            
+            #Select 1 Probe
+            probes = self.get_units_by_type(obs, units.Protoss.Probe)
+            
+            if len(probes) > 0:
+                probe = random.choice(probes)
+                
+                return actions.FUNCTIONS.select_point("select_all_type", (probe.x,
+                                                                          probe.y))
+                
+        if self.step_number%32 == 3:
+            
+            #Build Pylons IF about to be supply capped
+            #Find optimal positions later, random values for now
+            if self.unit_type_is_selected(obs, units.Protoss.Probe):
+                free_supply = (obs.observation.player.food_cap -
+                               obs.observation.player.food_used)
+                if free_supply < 10 and obs.observation.player.food_cap != 200:
+                    if self.can_do(obs, actions.FUNCTIONS.Build_Pylon_screen.id):
+                        x = random.randint(0, 83)
+                        y = random.randint(0, 83)
+                        return actions.FUNCTIONS.Build_Pylon_screen("now", (x, y))
+        
+        
+        if self.step_number%32 == 4:
+            
+            #Build Assimilators
+            _NEUTRAL_VESPENE_GEYSER = 342
+            _UNIT_TYPE = features.SCREEN_FEATURES.unit_type.index
+            unit_type = obs.observation["feature_screen"][_UNIT_TYPE]
+            vespene_y, vespene_x = (unit_type == _NEUTRAL_VESPENE_GEYSER).nonzero()
+            i = random.randint(0, len(vespene_y) - 1)
+            x = vespene_x[i]
+            y = vespene_y[i]
+            
+            if self.unit_type_is_selected(obs, units.Protoss.Probe):
+                if self.can_do(obs, actions.FUNCTIONS.Build_Assimilator_screen.id):
+                    x = random.randint(0, 83)
+                    y = random.randint(0, 83)
+                    return actions.FUNCTIONS.Build_Assimilator_screen("now", (x, y))
+            
+            
+        
+        
+        
+        
+        
         #Attack with zealots
         zealots = self.get_units_by_type(obs, units.Protoss.Zealot)
         if len(zealots) >= 5:
@@ -77,14 +151,7 @@ class ProtossAgent(base_agent.BaseAgent):
         
         #Build pylons if free supply less than 10 and not capped at 200
         #PROBLEM: Once AI selects zealots for attack, it no longer has probes selected and can't run this; also building zealots takes priority
-        if self.unit_type_is_selected(obs, units.Protoss.Probe):
-            free_supply = (obs.observation.player.food_cap -
-                                         obs.observation.player.food_used)
-            if free_supply < 10 and obs.observation.player.food_cap != 200:
-                if self.can_do(obs, actions.FUNCTIONS.Build_Pylon_screen.id):
-                    x = random.randint(0, 83)
-                    y = random.randint(0, 83)
-                    return actions.FUNCTIONS.Build_Pylon_screen("now", (x, y))
+        
       
         
         #Build gateways
@@ -111,16 +178,9 @@ class ProtossAgent(base_agent.BaseAgent):
             
             
       
-        #Looking for probes and adding them to the array
-        probes = [unit for unit in obs.observation.feature_units
-              if unit.unit_type == units.Protoss.Probe]
         
-        #If probes exist, select all probes
-        if len(probes) > 0:
-            probe = random.choice(probes)
-      
-            return actions.FUNCTIONS.select_point("select_all_type", (probe.x,
-                                                                probe.y))
+        
+        
       
         return actions.FUNCTIONS.no_op()
 
@@ -149,7 +209,7 @@ def main(unused_argv):
                             use_feature_units=True),
                             
                     #Number of steps that will pass before bot makes an action
-                    step_mul=16,
+                    step_mul=1,
                     
                     #Game length = unlimited
                     game_steps_per_episode=0,
