@@ -33,7 +33,7 @@ class ProtossAgent(base_agent.BaseAgent):
         
         return False
     
-    #????????
+    #selects units with given unit type; returns an array of selected units
     def get_units_by_type(self, obs, unit_type):
         return [unit for unit in obs.observation.feature_units
                         if unit.unit_type == unit_type]
