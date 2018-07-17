@@ -4,6 +4,12 @@
 Created on Mon Jul 16 14:41:22 2018
 
 @author: EvanTroop
+
+Sources : 
+    https://pandas.pydata.org/pandas-docs/stable/generated/pandas.read_csv.html
+    https://pandas.pydata.org/pandas-docs/stable/generated/pandas.DataFrame.to_csv.html
+    https://chrisalbon.com/python/data_wrangling/pandas_dataframe_importing_csv/
+    
 """
 
 #Machine Learning Main Class
@@ -16,6 +22,7 @@ class MachineLearningBase() :
 
     def __init__(self):
         self.data_set = pd.read_csv('SCDataset1.csv')
+        
         print("Initilized")
      
         
@@ -29,9 +36,11 @@ class MachineLearningBase() :
             self.export_data()
         self.print_data()
         
+        
     def export_data(self):
         self.data_set.to_csv("SCDataset1.csv", index = False)
         
+    
         
 
 
