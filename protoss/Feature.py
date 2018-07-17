@@ -8,12 +8,13 @@ Created on Mon Jul 16 23:41:48 2018
 sources : 
     https://pandas.pydata.org/pandas-docs/stable/generated/pandas.DataFrame.html
     https://stackoverflow.com/questions/23549231/check-if-a-value-exists-in-pandas-dataframe-index
-    
+    https://stackoverflow.com/questions/17071871/select-rows-from-a-dataframe-based-on-values-in-a-column-in-pandas
 """
+
 #Individual Set of Data
 import pandas as pd
 
-class Feature:
+class Row:
     
     def __init__(self, d):
         if type(d) == pd.DataFrame :
@@ -33,7 +34,7 @@ class Feature:
         return False
         
 """
-feat = Feature( pd.DataFrame(data = {'x' : [86], 'y' : [3], 'z' : [4]} ))
+feat = Row( pd.DataFrame(data = {'x' : [86], 'y' : [3], 'z' : [4]} ))
 print(feat.get_value('x') * 100)
 print(feat.get_value('y') * 100)
 print(feat.get_value('z') * 100)
