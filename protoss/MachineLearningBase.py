@@ -15,39 +15,32 @@ class MachineLearningBase() :
         
 
     def __init__(self):
-        self.dataSet = pd.read_csv('SCDataset1.csv')
+        self.data_set = pd.read_csv('SCDataset1.csv')
         print("Initilized")
      
         
-    def printData(self):
-        print(self.dataSet)
+    def print_data(self):
+        print(self.data_set)
         
-    def setData(self):
+    def set_data(self, export):
         print("Set Data Called;")
-        self.dataSet = self.dataSet.append({'x' : 40, 'y'  : 400}, ignore_index = True)
-        sure = input("Are you sure?(Y/N)\n")
-        if('y' in sure):
-            self.dataSet.to_csv('SCDataSet1.csv')
-            self.dataSet = pd.read_csv('SCDataset1.csv')
+        self.data_set = self.data_set.append({'x' : 40, 'y'  : 400}, ignore_index = True)
+        if export == True :
+            self.export_data()
+        self.print_data()
         
-        self.printData()
+    def export_data(self):
+        self.data_set.to_csv("SCDataset1.csv", index = False)
         
         
 
 
-"""
-mach = MachineLearningBase()
+
+
 print("start\n\n")
-mach.setData()
-
-mmach2 = MachineLearningBase()
-mach.printData()
+mach = MachineLearningBase()
+mach.set_data(True)
 print("\n\nend")
-"""
 
-data = pd.read_csv("SCDataset1.csv")
 
-print(data)
-data = data.append({'x' : 40, 'y'  : 400}, ignore_index = True)
-print(data)
-data.to_csv("SCDataset1.csv", index = False)
+
