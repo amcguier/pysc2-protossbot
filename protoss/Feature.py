@@ -19,19 +19,22 @@ class Row:
     def __init__(self, d):
         if type(d) == pd.DataFrame :
             self.data = d
-        else:
+        else :
             print("Error : Argument is not of correct type")
-            
+        self.get_description()
         print("Initilized")
         
         
     #If the dataframe has a column that is called "for_key" returns value; else False
     def get_value(self, for_key):
         if for_key in self.data.columns :
-            print("Through")
             return self.data[for_key]
         print("Error Accesing Data: Key not in data")
         return False
+    
+    def get_description(self):
+        for c in self.data :
+            print(c)
         
 """
 feat = Row( pd.DataFrame(data = {'x' : [86], 'y' : [3], 'z' : [4]} ))

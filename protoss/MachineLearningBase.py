@@ -36,12 +36,20 @@ class MachineLearningBase() :
    
     
     def get_row(self, from_row):
-        if type(from_row) == int :
-            return Row(self.data_set.loc[from_row]) 
-        print("Error : Argument is not of correct Type")
+        if type(from_row) == int:
+            return f.Row(pd.DataFrame(self.data_set.loc[from_row])) 
+        print("Error : Argument is not of correct Type 0001")
         return False
     
     
+    def get_column(self, from_row):
+        if type(from_row) == str :
+            # will return a column that has all of th data sets of a single feature type
+            return
+        print("Error : Argument is not of correct Type 0002")
+        return False
+        
+        
     def set_data(self, row, export):
         temp = self.check_new_row(row)
         print("Set Data Called;")
@@ -79,7 +87,7 @@ class MachineLearningBase() :
 print("---START---\n\n")
 mach = MachineLearningBase()
 mach.set_data({'x' : 40, 'z'  : 400}, False)
-print(mach.get_row(0))
+print(mach.get_row('y'))
 print("\n\n---END---")
 
 
