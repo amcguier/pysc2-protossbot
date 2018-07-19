@@ -32,6 +32,9 @@ class Row:
         print("Error Accesing Data: Key not in data")
         return False
     
+    def get_data(self):
+        return self.data
+    
     def get_description(self):
         for c in self.data :
             print(c)
