@@ -21,7 +21,7 @@ class Row:
             self.data = d
         else :
             print("Error : Argument is not of correct type")
-        self.get_description()
+        self.get_description(False)
         print("Initilized")
         
         
@@ -32,12 +32,29 @@ class Row:
         print("Error Accesing Data: Key not in data")
         return False
     
+    #Check to make sure data contains key and if so set to value, return true; else , return false
+    def set_value(self, value, for_key):
+        if for_key in self.data.columns :
+            self.data[for_key] = value
+            print("Error : Key to set data for is not in data")
+            return True
+        return False
+    
+    #get all of the data as a panda dataframe
     def get_data(self):
         return self.data
     
-    def get_description(self):
-        for c in self.data :
-            print(c)
+    #easily print all values in the row 
+    #argument = true : w index, false : w/o index
+    def get_description(self, with_index):
+        if(with_index == True):
+            print(self.data)
+        else:
+            for c in self.data :
+                s = str(c) + " : "
+                for v in self.data[c]:
+                    s += str(v) + ", "
+                print(s)
         
 """
 feat = Row( pd.DataFrame(data = {'x' : [86], 'y' : [3], 'z' : [4]} ))

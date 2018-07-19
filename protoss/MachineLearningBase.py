@@ -51,22 +51,23 @@ class MachineLearningBase() :
         print("Error : Argument is not of correct Type 0002")
         return False
         
+    #append to the datase; if export is true => commit changes made to dataset to the csv file
+    def append(self, row_1, export):
         
-    def append(self, row, export):
-        temp = self.check_new_row(row)
-        print("Set Data Called;")
-        if temp == True : 
-            self.data_set = self.data_set.append(row, ignore_index = True)
-            if export == True :
-                self.export_data()
-                self.print_data()
-            return True
+        if type(row_1) == f.Row:
+            row = row_1.get_data()
+            if self.check_new_row(row): 
+                self.data_set = self.data_set.append(row, ignore_index = True)
+                if export == True :
+                    self.export_data()
+                    self.print_data()
+                    return True
         return False
-       
+        
     #Checks to make sure that the row we want to add matches the fromat of our
     #data set
     def check_new_row(self, row):
-
+        
         for key in list(row.columns.values):
             if key not in list(self.data_set.columns.values):
                 print("Error : Row to add contains feature not in data_set")
@@ -82,9 +83,8 @@ class MachineLearningBase() :
             if data_types[row_headers[i]] != row_types[i]:
                 print("Error : Data types do not match")
                 temp2 = False
-            else :
                 
-        print(temp2)
+        
         return temp2
         
         
@@ -104,13 +104,8 @@ class MachineLearningBase() :
 print("---START---\n\n")
 mach = MachineLearningBase()
 
-d = pd.DataFrame(data = {'x' : [-1], 'y' : [1]})#, 'z' : [3]})
-mach.check_new_row(d)
-
-
-
-
-
+d = pd.DataFrame(data = {'x' : [100], 'y' : [500]})
+print(mach.append(f.Row(d), False))
 
 
 print("\n\n---END---")
