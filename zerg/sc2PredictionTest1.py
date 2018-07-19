@@ -6,6 +6,8 @@ Created on Mon Jul 16 18:45:11 2018
 """
 
 import pandas as pd
+import numpy as np
+import tensorflow as tf
 
 enemyBuildings = pd.read_csv("C:/Users/User/Documents/EnemyBuildingAmounts.csv")
 weights = pd.read_csv("C:/Users/User/Documents/EnemyBuildingWeights.csv")
