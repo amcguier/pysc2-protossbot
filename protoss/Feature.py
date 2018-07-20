@@ -22,17 +22,17 @@ class Row:
         else :
             print("Error : Argument is not of correct type")
         self.get_description(False)
-        print("Initilized")
+        print("Initialized")
         
         
-    #If the dataframe has a column that is called "for_key" returns value; else False
+    #If the dataframe has a column that is called "for_key", return value; else, return false
     def get_value(self, for_key):
         if for_key in self.data.columns :
             return self.data[for_key]
-        print("Error Accesing Data: Key not in data")
+        print("Error Accessing Data: Key not in data")
         return False
     
-    #Check to make sure data contains key and if so set to value, return true; else , return false
+    #Check to make sure data contains key and if so, set to value, return true; else , return false
     def set_value(self, value, for_key):
         if for_key in self.data.columns :
             self.data[for_key] = value
@@ -40,12 +40,12 @@ class Row:
             return True
         return False
     
-    #get all of the data as a panda dataframe
+    #Get all of the data as a panda dataframe
     def get_data(self):
         return self.data
     
-    #easily print all values in the row 
-    #argument = true : w index, false : w/o index
+    #Easily print all values in the row 
+    #Argument = true : w index, false : w/o index
     def get_description(self, with_index):
         if(with_index == True):
             print(self.data)

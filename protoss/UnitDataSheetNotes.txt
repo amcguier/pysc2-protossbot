@@ -1,0 +1,28 @@
+Notes on Unit Sheet
+*Air and Ground damage has been simplified due to lack of enemy research knowledge, can implement increase of these values at certain timestamps
+*****Fix bonus damage and dps with booleans with attributes
+*Attr takes different strings
+*Specific abilities are different per unit...
+*Ravager-Splash?
+*Figure out way to manage M and 0-1 range troops
+*Zerg Creep multiplier for speed 
+*Attack Modifier inidicates type of dmg, read in strings/char
+*Both Thor Special Attacks have 10 range
+*(4.13 +4.62 C) 4.13  with research, with ability, 4.62 for 2.5 seconds
+*3.94 speed with research for Observer
+*5.36 with research for warp prism speed
+*******INFESTED TERRAN SPECIAL CASE W
+*+2.1 for overseer speed upon research pneumatized carapace
+*+1.728 for overlord speed upon research pneumatized carapace
+*+.79 speed for hydralisk upon research morph to lurker
+*+1.05 for speed for roach upon research glial reconstitution
+*+.065 for speed for banelings on research centrifugal hooks
+*+2.45 for speed for zergling on research metabolic boosts
+*+1.4 for speed for banshee on research hyperflight rotors
+*+2.44	for speed in medivac on research high capacity fuel tanks/ignite afterburners
+*+1.57 for speed using stimpack for marauders and marines
+*+4 range for advanced ballistics on liberator, 5 range air attacks
+*Planetary Fortress, missile turret, auto turret, and point defense drone + 1 range upon research hi-sec auto tracking
+*+1/2 range for range for hydralisk upon research muscular augment
++advanced ballistics + 4 rng for defender mode liberator
+*n in attack modifier means normal ground single attacks

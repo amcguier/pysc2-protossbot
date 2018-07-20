@@ -31,27 +31,27 @@ class MachineLearningBase() :
     def __init__(self):
         self.data_set = pd.read_csv('SCDataset1.csv')
         
-        print("Initilized")
+        print("Initialized")
      
         
     def print_data(self):
         print(self.data_set)
    
-    #gets a row from the data (individual row) : dataType = 
+    #Get a row from the data (individual row) : dataType = 
     def get_row(self, from_row):
         if type(from_row) == int:
             return pd.DataFrame(self.data_set.loc[[from_row]])
         print("Error : Argument is not of correct Type 0001")
         return False
     
-    #get all data from a single feature : dataType = 
+    #Get all data from a single feature : dataType = 
     def get_feature(self, feature_name):
         if type(feature_name) == str :
             return self.data_set[feature_name]
         print("Error : Argument is not of correct Type 0002")
         return False
         
-    #append to the datase; if export is true => commit changes made to dataset to the csv file
+    #Append to the database; if export is true => commit changes made to dataset to the csv file
     def append(self, row_1, export):
         
         if type(row_1) == f.Row:
@@ -64,8 +64,7 @@ class MachineLearningBase() :
                     return True
         return False
         
-    #Checks to make sure that the row we want to add matches the fromat of our
-    #data set
+    #Check to make sure that the row we want to add matches the format of our dataset
     def check_new_row(self, row):
         
         for key in list(row.columns.values):
