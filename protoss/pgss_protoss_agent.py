@@ -165,7 +165,7 @@ class ProtossAgent(base_agent.BaseAgent):
             
             
         
-        #Select the main base and train and send workers to resources
+        #Center camera on and select the main base, rally probes to correct resources, train probes
         if self.action_number == 1:
             
             if self.sub_action_number == 2:
@@ -216,7 +216,7 @@ class ProtossAgent(base_agent.BaseAgent):
                     return actions.FUNCTIONS.Rally_Workers_screen("now", (minerals[0].x, minerals[0].y))
                 
                 
-        #Select idle worker and build pylons and assimilators
+        #Select idle worker and center camera on main base, build assimilators and pylons at main base, build pylons by natural expansion if necessary
         if self.action_number == 2:
             
             if self.sub_action_number == 1:
@@ -279,7 +279,7 @@ class ProtossAgent(base_agent.BaseAgent):
                         else:
                             return actions.FUNCTIONS.Build_Pylon_screen("queued", (random.randint(0, 83), random.randint(0, 28)))
                 
-        #Pan camera to natural expansion to train and send workers to resources
+        #Center camera on natural expansion, rally probes to correct resources, train probes
         if self.action_number == 3:
             
             if self.sub_action_number == 2:
@@ -330,7 +330,7 @@ class ProtossAgent(base_agent.BaseAgent):
         if self.action_number == 8:
             print("lol")
         
-        #Select worker, pan camera to natural expansion, and build nexus and assimilators
+        #Select worker and center camera on natural expansion, build nexus and assimilators
         if self.action_number == 10:
             
             if self.sub_action_number == 1:
