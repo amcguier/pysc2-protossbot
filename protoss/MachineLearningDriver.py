@@ -12,6 +12,8 @@ Sources :
             https://stackoverflow.com/questions/15891038/change-data-type-of-columns-in-pandas
             https://stackoverflow.com/questions/29576430/shuffle-dataframe-rows
             https://stackoverflow.com/questions/48208128/uninstalling-tensorflow-from-anaconda-environment
+            https://www.tensorflow.org/versions/r1.5/api_docs/python/tf/contrib/data/Dataset
+            
             
             Q - Learning
             https://github.com/MorvanZhou/Reinforcement-learning-with-tensorflow/blob/master/contents/1_command_line_reinforcement_learning/treasure_on_right.py
@@ -37,7 +39,7 @@ import tensorflow as tf
 import numpy as np
 
 
-#from tensorflow import Dataset
+from tensorflow.contrib.data import Dataset
 
 
 
@@ -79,8 +81,14 @@ def main(raw_data, sel_features, target_output):
     
     validation_examples = get_required_features(data.iloc[number_training : number_validation], 
                                                 sel_features)
-    validation_targets = get_target_data(data.iloc[number_training : number_validation], 
+    validation_targets = get_target_data(data.iloc[number_training : len(data) - number_validation], 
                                          target_output)
+    
+    print(number_training)
+    print(number_validation)
+    
+    print("dhghsjshsjshdjsgs")
+    #print(validation_targets)
     
     test_examples = get_required_features(data.iloc[-1 * number_test:], 
                                           sel_features)
@@ -176,11 +184,11 @@ def pretrain_neural_net(features, targets, batch_size = 1, shuffle = True, num_e
     features = {key : np.array(value) for key, value in dict(features).items()}
     
 #THIS IS CAUSING AN ERROR AND IDK WHY?<DDUKS>DSJAUIFGHSUIAG
-    data_set = Dataset.from_tensor_slices((features, targets))
-    data_set = data_set.batch(batch_size).repeat(num_epochs)
+    ds = Dataset.from_tensor_slices((features, targets))
+    ds = ds.batch(batch_size).repeat(num_epochs)
     
     if shuffle :
-        ds = ds.shuffle()
+       ds = ds.shuffle(10000)
         
     features, labels = ds.make_one_shot_iterator().get_next()
     return features,labels
@@ -205,6 +213,8 @@ def train_neural_network(learning_rate, #learning rate(float))
         
         returns the trained neural net regressor object
     """
+    
+    print("ENTER\n\n\n\n\n")
     periods = 30 # arbitrary, i can send in later also not really nescessary
     steps_per_period = steps / periods
     
@@ -225,7 +235,7 @@ def train_neural_network(learning_rate, #learning rate(float))
     training_input_fn = lambda : pretrain_neural_net(training_examples, 
                                                      training_targets[target_output],
                                                      batch_size = batch_size)
-    predict_training_input_fn = lambda : pretraint_neural_net(training_examples,
+    predict_training_input_fn = lambda : pretrain_neural_net(training_examples,
                                                               training_targets[target_output],
                                                               num_epochs = 1,
                                                               shuffle = False)
@@ -233,26 +243,37 @@ def train_neural_network(learning_rate, #learning rate(float))
                                                                training_targets[target_output],
                                                                num_epochs = 1,
                                                                shuffle = False)
+    print("NEXT 1\n\n\n\n")
+    
     training_rmse = []
     validation_rmse = []
     print(type(periods))
     for period in range(0, periods):
+        print("NEXT2 \n\n\n")
         neural_net_regressor.train(
                 input_fn = training_input_fn,
                 steps = steps_per_period)
+        
+        print()
         training_predictions = neural_net_regressor.predict(input_fn = predict_training_input_fn)
         training_predictions = np.array([item['predictions'][0] for item in training_predictions])
         
         validation_predictions = neural_net_regressor.predict(input_fn = predict_validation_input_fn)
-        validation_predictions = np.array([item['predictions'][0] for item in validations_predictions])
+        validation_predictions =  np.array([item['predictions'][0] for item in validation_predictions])
         
         # Compute Loss
         training_sq_error = math.sqrt(metrics.mean_squared_error(training_predictions, training_targets))
         
-        validation_sq_error = math.sqrt(metrics.mean_squared_error(validation_predictions, validation_targets))
+        print("PREDICTIONS")
+        print(validation_predictions)
+        print(len(validation_predictions))
+        print("Targets")
+        print(type(validation_targets))
         
-        print("Period : " + period + " : ")
-        print("Loss : " + training_sq_error)
+        validation_sq_error = 2 #math.sqrt(metrics.mean_squared_error(validation_predictions, validation_targets))
+        
+        print("Period : " + str(period) + " : ")
+        print("Loss : " + str(training_sq_error))
     
         training_rmse.append(training_sq_error)
         validation_rmse.append(validation_sq_error)
