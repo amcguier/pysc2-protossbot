@@ -13,6 +13,7 @@ sources :
 
 #Individual Set of Data
 import pandas as pd
+import MachineLearningDriver as ml
 
 class Row:
     
@@ -32,6 +33,7 @@ class Row:
         print("Error Accessing Data: Key not in data")
         return False
     
+    
     #Check to make sure data contains key and if so, set to value, return true; else , return false
     def set_value(self, value, for_key):
         if for_key in self.data.columns :
@@ -40,9 +42,11 @@ class Row:
             return True
         return False
     
+    
     #Get all of the data as a panda dataframe
     def get_data(self):
         return self.data
+    
     
     #Easily print all values in the row 
     #Argument = true : w index, false : w/o index
