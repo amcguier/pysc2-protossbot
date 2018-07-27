@@ -95,10 +95,10 @@ def main(raw_data, sel_features, target_output):
     test_targets = get_target_data(data.iloc[ -1 * number_test:], 
                                    target_output)
     
-    neural_network = train_neural_network(learning_rate = 0.0001,
+    neural_network = train_neural_network(learning_rate = 0.000001,
                                           steps = 10,
                                           batch_size = 1,
-                                          hidden_units = [3,10,10],
+                                          hidden_units = [4,6,5],
                                           target_output = target_output,
                                           training_examples = training_examples,
                                           training_targets = training_targets,
@@ -215,7 +215,7 @@ def train_neural_network(learning_rate, #learning rate(float))
     """
     
     print("ENTER\n\n\n\n\n")
-    periods = 30 # arbitrary, i can send in later also not really nescessary
+    periods = 10 # arbitrary, i can send in later also not really nescessary
     steps_per_period = steps / periods
     
     optimizer = tf.train.GradientDescentOptimizer(learning_rate = learning_rate)
@@ -243,18 +243,18 @@ def train_neural_network(learning_rate, #learning rate(float))
                                                                training_targets[target_output],
                                                                num_epochs = 1,
                                                                shuffle = False)
-    print("NEXT 1\n\n\n\n")
+    
     
     training_rmse = []
     validation_rmse = []
-    print(type(periods))
+    
     for period in range(0, periods):
-        print("NEXT2 \n\n\n")
+        
         neural_net_regressor.train(
                 input_fn = training_input_fn,
                 steps = steps_per_period)
         
-        print()
+        
         training_predictions = neural_net_regressor.predict(input_fn = predict_training_input_fn)
         training_predictions = np.array([item['predictions'][0] for item in training_predictions])
         
@@ -264,13 +264,9 @@ def train_neural_network(learning_rate, #learning rate(float))
         # Compute Loss
         training_sq_error = math.sqrt(metrics.mean_squared_error(training_predictions, training_targets))
         
-        print("PREDICTIONS")
-        print(validation_predictions)
-        print(len(validation_predictions))
-        print("Targets")
-        print(type(validation_targets))
         
-        validation_sq_error = 2 #math.sqrt(metrics.mean_squared_error(validation_predictions, validation_targets))
+        
+        validation_sq_error = training_sq_error #math.sqrt(metrics.mean_squared_error(validation_predictions, validation_targets))
         
         print("Period : " + str(period) + " : ")
         print("Loss : " + str(training_sq_error))
@@ -287,20 +283,20 @@ def train_neural_network(learning_rate, #learning rate(float))
     plt.plot(validation_rmse, label = "Validation")
     plt.legend()
     
-    print('final squared error for trainitg: ' + training_sq_error)
-    print('final squared error for validation' + validation_sq_error)
+    print('final squared error for trainitg: ' + str(training_sq_error))
+    print('final squared error for validation' + str(validation_sq_error))
     return neural_net_regressor
 
 
 """ ==================== """
-
+"""
 x = []
 print(type(x))
 for i in range(1000):
     x.append(i)
 y = []
 for i in range(1000):
-    y.append(i * 2.6)
+    y.append(i ** 2)
 z = [] 
 for i in range(1000):
     z.append(i ** 2)
@@ -308,3 +304,4 @@ for i in range(1000):
 data = pd.DataFrame(data = {'x' : x, 'y' : y, 'z' : z})
 
 main(data, ['x', 'y'], 'z')
+"""

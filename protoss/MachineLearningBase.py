@@ -101,10 +101,10 @@ class MachineLearningBase() :
 
 
 print("---START---\n\n")
-mach = MachineLearningBase()
+#mach = MachineLearningBase()
 
-d = pd.DataFrame(data = {'x' : [100], 'y' : [500]})
-print(mach.append(f.Row(d), False))
+#d = pd.DataFrame(data = {'x' : [100], 'y' : [500]})
+#print(mach.append(f.Row(d), False))
 
 
 print("\n\n---END---")
