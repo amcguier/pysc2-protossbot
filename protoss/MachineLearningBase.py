@@ -22,7 +22,7 @@ import pandas as pd
 import tensorflow as tf
 import Feature as f
 import MachineLearningDriver as mld
-
+import QLearningLib as ql
 
 
 class MachineLearningBase() :
@@ -97,7 +97,8 @@ class MachineLearningBase() :
     
         
 
-
+def get_Qs():
+    
 
 
 print("---START---\n\n")

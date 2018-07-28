@@ -95,10 +95,10 @@ def main(raw_data, sel_features, target_output):
     test_targets = get_target_data(data.iloc[ -1 * number_test:], 
                                    target_output)
     
-    neural_network = train_neural_network(learning_rate = 0.000001,
-                                          steps = 10,
+    neural_network = train_neural_network(learning_rate = 0.001,
+                                          steps = 20,
                                           batch_size = 1,
-                                          hidden_units = [4,6,5],
+                                          hidden_units = [4,5],
                                           target_output = target_output,
                                           training_examples = training_examples,
                                           training_targets = training_targets,
@@ -106,7 +106,7 @@ def main(raw_data, sel_features, target_output):
                                           validation_targets = validation_targets)
    
     
-    
+    return neural_network
     
     #This will make sure that the target output has data that it can use to learn 
     """
@@ -293,15 +293,15 @@ def train_neural_network(learning_rate, #learning rate(float))
 x = []
 print(type(x))
 for i in range(1000):
-    x.append(i)
+    x.append(0.5 ** i)
 y = []
 for i in range(1000):
-    y.append(i ** 2)
+    y.append(i * 2)
 z = [] 
 for i in range(1000):
-    z.append(i ** 2)
+    z.append(2 * i)
 
 data = pd.DataFrame(data = {'x' : x, 'y' : y, 'z' : z})
 
-main(data, ['x', 'y'], 'z')
+nn = main(data, ['x', 'y'], 'z')
 """
