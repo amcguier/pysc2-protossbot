@@ -38,10 +38,9 @@ class Q_list():
         
         # will store past actions
         self.past_actions = pd.DataFrame(index=[], columns=['state', 'action'])
-        
         #a number if you want to limit how many future steps are counted, -1 if you want no endpoint
         self.recersive_units = 10
-        
+        #how much each step into the future retains value
         self.gamma = 0.8
         
         #likleyhood that we try new spots
@@ -63,9 +62,8 @@ class Q_list():
                 return self.q_list.loc[state].idxmax()
             else :
                 #need to do a random thing here
-                si = np.rand.rand_int(0, high=10)
-                
-                return self.q_list.loc[state][action]
+                rand = np.rand.randint(0, high=len(self.q_list[state]))
+                return self.q_list.loc[state][rand]
         
     """This will set the reward for a given state. won't do any calculations"""
     def set_reward(self, state, action, reward):
