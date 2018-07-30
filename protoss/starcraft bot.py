@@ -85,6 +85,10 @@ class ProtossAgent(base_agent.BaseAgent):
         #Attack with zealots
         
         
+        self.t +=1
+        
+        
+        
         zealots = self.get_units_by_type(obs, units.Protoss.Zealot)
         #print(type(zealots))
         '''
@@ -201,7 +205,7 @@ class ProtossAgent(base_agent.BaseAgent):
         templars = self.get_units_by_type(obs, units.Protoss.HighTemplar)
         '''
         #need to make an incrementeing class variable
-        if self.t%160 ==0 and self.t%64 != self.pb:
+        if self.t%12 ==0 :#and self.t%64 != self.pb
             zealots = self.get_units_by_type(obs, units.Protoss.Zealot)
             stalkers = self.get_units_by_type(obs, units.Protoss.Stalker)
             sentries = self.get_units_by_type(obs, units.Protoss.Sentry)
@@ -223,7 +227,7 @@ class ProtossAgent(base_agent.BaseAgent):
                 print(self.truprobes)
                 print(self.trunumunits)
                 if self.yc < 56:
-                    self.yc += 16
+                    self.yc += 12
                     return actions.FUNCTIONS.move_camera((self.xc, self.yc))
                 else:
                     self.xc +=16
@@ -283,8 +287,8 @@ class ProtossAgent(base_agent.BaseAgent):
                 return actions.FUNCTIONS.Train_Zealot_quick("now")
         '''    
         #zealots = self.get_units_by_type(obs, units.Protoss.Zealot) 
-        self.t +=1
-        if self.t%2 == 0:                #changed from tick of 15
+        print(self.t)
+        if self.t%100 == 0:                #changed from tick of 15
             #print(zealots)
             #self.infodump = self.infodump+ 
             if len(zealots) > 0:
@@ -375,12 +379,14 @@ class ProtossAgent(base_agent.BaseAgent):
             
             
             ###run this part second to infinite times
+            
+            '''
             csvfile = 'SCtest.csv'
             with open(csvfile, "a") as output:
                 writer = csv.writer(output,lineterminator=',')
                 writer.writerows(thinglist)
             
-                
+            '''    
                 
                 
                 
