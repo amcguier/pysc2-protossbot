@@ -31,6 +31,18 @@ class ProtossAgent(base_agent.BaseAgent):
 Nesc Class variables
 ======================================
 """
+    truzealots = 0
+    truimmortals = 0
+    trustalkers = 0
+    trusentries = 0
+    truprobes = 0
+    
+    trunumunits = [truzealots,trustalkers,trusentries,truimmortals,truprobes,t]
+    finalNumUnits = []    
+    xc = 10 #changed from 10
+    yc = 9
+    
+    
     
     real_old_score = 0
     old_score = 0
@@ -158,6 +170,57 @@ Nesc Class variables
                 obs.observation.multi_select[0].unit_type == unit_type):
             return True
         return False
+    
+    def Find_Units(self,obs,time): # time has to be greater than 8, its what mod you want
+        if self.sub_action_number%time ==0 or self.sub_action_number%time ==1 or 
+        self.sub_action_number%time ==2 or self.sub_action_number%time ==3 or 
+        self.sub_action_number%time == 4 or self.sub_action_number%time ==5
+        or self.sub_action_number%time ==6 or self.sub_action_number%time ==7
+        or self.sub_action_number%time ==8:
+            
+            
+        # time however many steps you want it to run
+            zealots = self.get_units_by_type(obs, units.Protoss.Zealot)
+            stalkers = self.get_units_by_type(obs, units.Protoss.Stalker)
+            sentries = self.get_units_by_type(obs, units.Protoss.Sentry)
+            observers = self.get_units_by_type(obs, units.Protoss.Observer)
+            immortals = self.get_units_by_type(obs, units.Protoss.Immortal)
+            templars = self.get_units_by_type(obs, units.Protoss.HighTemplar)
+            probes = self.get_units_by_type(obs, units.Protoss.Probe)
+            numUnits = {len(zealots),len(stalkers),len(sentries),len(immortals)}
+    
+    
+            if self.xc <54:
+                self.truzealots += len(zealots)
+                self.trustalkers += len(stalkers)
+                self.trusentries += len(sentries)
+                self.truimmortals += len(immortals)
+                self.truprobes += len(probes)
+                self.trunumunits = [self.truzealots,self.trustalkers,self.trusentries,self.truimmortals,self.truprobes,self.t]
+            #print(len(probes))
+            #print(self.truprobes)
+            #print(self.trunumunits)
+                if self.yc < 54:
+                    self.yc += 16
+                    return actions.FUNCTIONS.move_camera((self.xc, self.yc))
+                else:
+                    self.xc +=18
+                    self.yc = 9
+            else:
+                self.xc = 10
+                self.yc = 9 
+                self.truzealots += len(zealots)
+                self.trustalkers += len(stalkers)
+                self.trusentries += len(sentries)
+                self.truimmortals += len(immortals)
+                self.truprobes += len(probes)
+            #print(self.trunumunits)# get rid of the print statement
+                finalNumUnits = [self.truzealots,self.trustalkers,self.trusentries,self.truimmortals,self.truprobes,self.sub_action_number]
+                self.truzealots = 0
+                self.trustalkers = 0
+                self.trusentries = 0
+                self.truimmortals = 0
+                self.truprobes = 0
     
     
     #Adds all units of the same type on screen to an array
@@ -821,11 +884,42 @@ Nesc Class variables
         #Send army to rekt enemy ezzzzzzzz
         if self.action_number == 10:
             self.attack_number+=1
-            
+            zealots = self.get_units_by_type(obs, units.Protoss.Zealot)
+            stalkers = self.get_units_by_type(obs, units.Protoss.Stalker)
+            sentries = self.get_units_by_type(obs, units.Protoss.Sentry)
+            observers = self.get_units_by_type(obs, units.Protoss.Observer)
+            immortals = self.get_units_by_type(obs, units.Protoss.Immortal)
+            templars = self.get_units_by_type(obs, units.Protoss.HighTemplar)
+            probes = self.get_units_by_type(obs, units.Protoss.Probe)
             if self.attack_number % 2 == 0:
                 last_reward = self.get_score(obs)
-            
                 
+                if self.sub_action_number% 3 == 1:
+                    self.yc = 22
+                elif self.sub_action_number% 3 == 2:
+                    self.yc = 38
+                else:
+                    self.yc = 6
+                if math.floor((self.sub_action_number - 1) / 3) == 0:
+                    self.xc = 10
+                elif math.floor((self.sub_action_number - 1) / 3) == 1:
+                    self.xc = 28
+                else:
+                    self.xc = 45
+            self.truzealots += len(zealots)
+            self.trustalkers += len(stalkers)
+            self.trusentries += len(sentries)
+            self.truimmortals += len(immortals)
+            self.truprobes += len(probes)
+            
+            self.trunumunits = [self.truzealots,self.trustalkers,self.trusentries,self.truimmortals,self.truprobes,self.step_number]
+            self.truzealots = 0
+            self.trustalkers = 0
+            self.trusentries = 0
+            self.truimmortals = 0
+            self.truprobes = 0
+            return actions.FUNCTIONS.move_camera((self.xc, self.yc))
+        ##### REMEBER TO DO SOMETHING WITH self.trunumunits  BEFORE YOU PAN THE SCREEN AGAIN                
             if self.sub_action_number % 4:
             """
             if self.sub_action_number == 1:
