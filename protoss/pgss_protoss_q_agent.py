@@ -891,7 +891,7 @@ class ProtossAgent(base_agent.BaseAgent):
                 our_y = kmeans.cluster_centers_[0][1]
                 
                 
-                new_x, new_y = actionToMovement(action, , Y, main_enemy_base[0], main_enemy_base[1], main_base_camera[0], main_base_camera[1])
+                new_x, new_y = actionToMovement(action, our_x, our_y, main_enemy_base[0], main_enemy_base[1], main_base_camera[0], main_base_camera[1])
                 
                 if self.can_do(actions.FUNCTIONS.Move_minimap.id):
                     return actions.FUNCTIONS.Move_minimap("now", (new_x, new_y))
