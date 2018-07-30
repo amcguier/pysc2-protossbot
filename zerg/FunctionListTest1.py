@@ -255,36 +255,39 @@ def actionToMovement(action, currentX, currentY, enemyBaseX, enemyBaseY, ourBase
     enemyDirX = enemyDirX/enemyStartDistance
     enemyDirY = enemyDirY/enemyStartDistance
     
+    valid = True
     
     #S action
-    if action == 0:
+    if action == 1:
         newX = currentX
         newY = currentY
        
     #F action
-    if action == 1:
+    if action == 2:
         newX = currentX + enemyDirX*moveStep
         newY = currentY + enemyDirY*moveStep
         
     #B action
-    if action == 2:
+    if action == 3:
         newX = currentX - enemyDirX*moveStep
         newY = currentY - enemyDirY*moveStep
         
     #R action
-    if action == 3:
+    if action == 4:
         newX = currentX + enemyDirX*moveStep
         newY = currentY - enemyDirY*moveStep
         
     #L action
-    if action == 4:
+    if action == 5:
         newX = currentX - enemyDirX*moveStep
         newY = currentY + enemyDirY*moveStep
         
-        
+    #Invalid Action Check
+    if newX > 64 or newX < 0 or newY > 64 or newY < 0:
+        valid = False
     
     
-    return newX, newY
+    return newX, newY, valid
 
 
 
