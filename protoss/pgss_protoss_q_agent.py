@@ -933,7 +933,9 @@ Nesc Class variables
                 self.Q_List.set_reward(state, action, last_reward)
                 
                 
-                new_x, new_y = actionToMovement(action, )
+                #obs.observation.feature_minimap.selected
+                
+                #new_x, new_y = actionToMovement(action, , Y, main_enemy_base[0], main_enemy_base[1], main_base_camera[0], main_base_camera[1])
                 
                 
             """
