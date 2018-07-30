@@ -26,11 +26,7 @@ INIT OF THE CLASS
 """
 class ProtossAgent(base_agent.BaseAgent):
 
-"""
 
-Nesc Class variables
-======================================
-"""
     truzealots = 0
     truimmortals = 0
     trustalkers = 0
@@ -115,9 +111,7 @@ Nesc Class variables
     yc = 9
     
     
-"""
-========================================
-"""
+
 
     def actionToMovement(action, currentX, currentY, enemyBaseX, enemyBaseY, ourBaseX, ourBaseY):
         moveStep = 8
@@ -892,36 +886,39 @@ Nesc Class variables
             templars = self.get_units_by_type(obs, units.Protoss.HighTemplar)
             probes = self.get_units_by_type(obs, units.Protoss.Probe)
             if self.attack_number % 2 == 0:
-                last_reward = self.get_score(obs)
+                if self.sub_action_number < 10:
+                    last_reward = self.get_score(obs)
+                    
+                    if self.sub_action_number% 3 == 1:
+                        self.yc = 22
+                    elif self.sub_action_number% 3 == 2:
+                        self.yc = 38
+                    else:
+                        self.yc = 6
+                    if math.floor((self.sub_action_number - 1) / 3) == 0:
+                        self.xc = 10
+                    elif math.floor((self.sub_action_number - 1) / 3) == 1:
+                        self.xc = 28
+                    else:
+                        self.xc = 45
+                    self.truzealots += len(zealots)
+                    self.trustalkers += len(stalkers)
+                    self.trusentries += len(sentries)
+                    self.truimmortals += len(immortals)
+                    self.truprobes += len(probes)
+                    
+                    self.trunumunits = [self.truzealots, self.trustalkers, self.trusentries,self.truimmortals,self.truprobes,self.step_number]
+                    self.truzealots = 0
+                    self.trustalkers = 0
+                    self.trusentries = 0
+                    self.truimmortals = 0
+                    self.truprobes = 0
+                    return actions.FUNCTIONS.move_camera((self.xc, self.yc))
+                ##### REMEBER TO DO SOMETHING WITH self.trunumunits  BEFORE YOU PAN THE SCREEN AGAIN                
                 
-                if self.sub_action_number% 3 == 1:
-                    self.yc = 22
-                elif self.sub_action_number% 3 == 2:
-                    self.yc = 38
-                else:
-                    self.yc = 6
-                if math.floor((self.sub_action_number - 1) / 3) == 0:
-                    self.xc = 10
-                elif math.floor((self.sub_action_number - 1) / 3) == 1:
-                    self.xc = 28
-                else:
-                    self.xc = 45
-            self.truzealots += len(zealots)
-            self.trustalkers += len(stalkers)
-            self.trusentries += len(sentries)
-            self.truimmortals += len(immortals)
-            self.truprobes += len(probes)
-            
-            self.trunumunits = [self.truzealots, self.trustalkers, self.trusentries,self.truimmortals,self.truprobes,self.step_number]
-            self.truzealots = 0
-            self.trustalkers = 0
-            self.trusentries = 0
-            self.truimmortals = 0
-            self.truprobes = 0
-            return actions.FUNCTIONS.move_camera((self.xc, self.yc))
-            ##### REMEBER TO DO SOMETHING WITH self.trunumunits  BEFORE YOU PAN THE SCREEN AGAIN                
-            if self.sub_action_number % 4:
-                
+                if self.sub_action_number == 10:
+                    return actions.FUNCTIONS.select_army("now")
+                    
                 state = ql.get_scaled_value('SIMPLE', n_zealot=trunumunits[0], 
                                             n_stalker=trunumunits[1], 
                                             n_immortal=trunumunits[2],
@@ -932,11 +929,22 @@ Nesc Class variables
                 action = self.Q_List.get_max_action(state)
                 self.Q_List.set_reward(state, action, last_reward)
                 
+                pixels_y, pixels_x = (obs.observation.feature_minimap.selected == features.PlayerRelative.SELF).nonzero()
+                pixels = []
+                for i in range(0, len(pixels_y)):
+                    pixels.append((pixels_x[i], pixels_y[i]))
+                kmeans = KMeans(n_clusters = 1)
+                if len(pixels) > 0:
+                    kmeans.fit(pixels)
+                    
+                our_x = kmeans.cluster_centers_[0][0]
+                our_y = kmeans.cluster_centers_[0][1]
                 
-                #obs.observation.feature_minimap.selected
                 
-                #new_x, new_y = actionToMovement(action, , Y, main_enemy_base[0], main_enemy_base[1], main_base_camera[0], main_base_camera[1])
+                new_x, new_y = actionToMovement(action, , Y, main_enemy_base[0], main_enemy_base[1], main_base_camera[0], main_base_camera[1])
                 
+                if self.can_do(actions.FUNCTIONS.Move_minimap.id):
+                    return actions.FUNCTIONS.Move_minimap("now", (new_x, new_y))
                 
             """
             if self.sub_action_number == 1:
