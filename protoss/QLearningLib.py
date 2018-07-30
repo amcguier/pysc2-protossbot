@@ -98,7 +98,7 @@ class Q_list():
                 return self.q_list.loc[state].idxmax()
             else :
                 
-                rand = np.rand.randint(0, high=len(self.q_list[state]))
+                rand = rd.randint(0, len(self.q_list[state]))
                 return self.q_list.loc[state][rand]
         
     """This will set the reward for a given state. won't do any calculations"""
@@ -113,8 +113,13 @@ class Q_list():
                 
                
         if state in self.q_list.index and action in self.q_list.columns:
-            self.q_list.loc[state][action] = reward
-            self.past_actions.append(pd.DataFrame)
+            if len(self.past_actions - 1) >= 0:
+                m = len(self.past_actions - 1)
+                st = self.past_actions.loc[m]['state']
+                ac = self.past_actions.loc[m]['action']
+                self.q_list.loc[st][ac] = reward  
+                
+            self.past_actions = self.past_actions.append(pd.DataFrame.from_dict({'state' : [state], 'action' : [action]}, ignore_index = True))
             return True
         
         return False
@@ -153,12 +158,11 @@ print(len(past_actions.loc[1]))
 print(past_actions.loc[1][0])
 
 
-si = np.random.randint(0, high=10)
+si = rand.randint(0, high=10)
 print(si)
 for i in range(len(past_actions)):
     print(past_actions.loc[i]['action'])
 print(past_actions)
 """
-
 
 

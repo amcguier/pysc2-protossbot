@@ -29,7 +29,7 @@ Created on Mon Jul 30 14:23:08 2018
         immortals = self.get_units_by_type(obs, units.Protoss.Immortal)
         templars = self.get_units_by_type(obs, units.Protoss.HighTemplar)
         probes = self.get_units_by_type(obs, units.Protoss.Probe)
-        numUnits = {len(zealots),len(stalkers),len(sentries),len(immortals)}
+        numUnits = [len(zealots),len(stalkers),len(sentries),len(immortals)]
     
     
         if self.xc <54:
@@ -38,7 +38,8 @@ Created on Mon Jul 30 14:23:08 2018
             self.trusentries += len(sentries)
             self.truimmortals += len(immortals)
             self.truprobes += len(probes)
-            self.trunumunits = {self.truzealots,self.trustalkers,self.trusentries,self.truimmortals,self.truprobes,self.t}
+            
+            self.trunumunits = [self.truzealots,self.trustalkers,self.trusentries,self.truimmortals,self.truprobes,self.t]
             print(len(probes))
             print(self.truprobes)
             print(self.trunumunits)
