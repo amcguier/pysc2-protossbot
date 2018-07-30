@@ -50,6 +50,8 @@ scales = [[1,2,4,8,16], #Zealot
           [0,1,2,4,8], #Sentury
           [2700,5400,8100,13500,27000]] #Time
 
+
+""" Returns an array of scaled values in the format[zealot, stalker, immortal, sentury, time] """
 def get_scaled_value(typ, n_zealot=0, n_stalker=0, n_immortal=0, n_sentury=0, time=0):
     if typ == 'SIMPLE':
         numbers = [n_zealot, n_stalker, n_immortal, n_sentury, time]
@@ -65,13 +67,12 @@ def get_scaled_value(typ, n_zealot=0, n_stalker=0, n_immortal=0, n_sentury=0, ti
         return outs
         
 
+""" Q_List Driver Class"""
 class Q_list():
     
     def __init__(self, path, mode):
         #rows(index) = states
         #columns is actions
-        
-        
         
         # will store past actions
         self.past_actions = pd.DataFrame(index=[], columns=['state', 'action'])
