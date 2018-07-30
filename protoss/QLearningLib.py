@@ -19,8 +19,6 @@ Sources :
 import pandas as pd
 import tensorflow as tf
 import numpy as np
-import Feature as f
-import MachineLearningDriver as mld
 import random as rd
 
 def generate_csv(name, type_list='BASIC'): 
@@ -52,7 +50,7 @@ scales = [[1,2,4,8,16], #Zealot
 
 
 """ Returns an array of scaled values in the format[zealot, stalker, immortal, sentury, time] """
-def get_scaled_value(typ, n_zealot=0, n_stalker=0, n_immortal=0, n_sentury=0, time=0):
+def get_scaled_value(typ, n_zealot=0, n_stalker=0, n_immortal=0, n_sentury= 0, time=0):
     if typ == 'SIMPLE':
         numbers = [n_zealot, n_stalker, n_immortal, n_sentury, time]
         outs = [0,0,0,0,0]
@@ -99,7 +97,7 @@ class Q_list():
             if rd.rand(0,1) > self.epsilon:
                 return self.q_list.loc[state].idxmax()
             else :
-                #need to do a random thing here
+                
                 rand = np.rand.randint(0, high=len(self.q_list[state]))
                 return self.q_list.loc[state][rand]
         
