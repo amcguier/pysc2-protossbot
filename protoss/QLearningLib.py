@@ -61,8 +61,9 @@ def get_scaled_value(typ, n_zealot=0, n_stalker=0, n_immortal=0, n_sentury= 0, t
                     break
             if(outs[i] == 0):
                 outs[i] = 5
-                
-        return outs
+        
+        state = 10000*outs[0] + 1000*outs[1] + 100*outs[2] + 10*outs[3] + outs[4]
+        return state
         
 
 """ Q_List Driver Class"""
@@ -102,14 +103,14 @@ class Q_list():
                 return self.q_list.loc[state][rand]
         
     """This will set the reward for a given state. won't do any calculations"""
-    def set_reward(self, state, action, reward):
+    def set_reward(self, state, action, last_reward):
         if self.is_learning:
             for i in range(len(self.past_actions)):
                 st = self.past_actions.loc[i]['state']
                 ac = self.past_actions.loc[i]['action']
                 
                 current_val = self.q_list.loc[st][ac]
-                current_val = current_val + reward * (self.gamma ** (len(self.past_actions) - i))
+                current_val = current_val + last_reward * (self.gamma ** (len(self.past_actions) - i))
                 
                
         if state in self.q_list.index and action in self.q_list.columns:
@@ -117,7 +118,7 @@ class Q_list():
                 m = len(self.past_actions - 1)
                 st = self.past_actions.loc[m]['state']
                 ac = self.past_actions.loc[m]['action']
-                self.q_list.loc[st][ac] = reward  
+                self.q_list.loc[st][ac] = last_reward  
                 
             self.past_actions = self.past_actions.append(pd.DataFrame.from_dict({'state' : [state], 'action' : [action]}, ignore_index = True))
             return True

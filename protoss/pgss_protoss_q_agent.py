@@ -15,7 +15,7 @@ from absl import app
 import random, math, csv, numpy, pdb
 from sklearn.cluster import KMeans
 import QLearningLib as ql
-
+import FunctionListTest1 as flt
 
 """
 
@@ -91,10 +91,10 @@ Nesc Class variables
     attempting_construction = False
     
     resource_locations = []
-    main_base_camera = [0, 0]
+    main_base_camera = [0, 0] #*****
     natural_base_camera = [0, 0]
     army_rally_camera = [0, 0]
-    main_enemy_base = [0, 0]
+    main_enemy_base = [0, 0] #*******
     possible_enemy_base = [0, 0]
     nexus_location = [0, 0]
     build_lean = [0, 0]
@@ -912,15 +912,30 @@ Nesc Class variables
             self.truimmortals += len(immortals)
             self.truprobes += len(probes)
             
-            self.trunumunits = [self.truzealots,self.trustalkers,self.trusentries,self.truimmortals,self.truprobes,self.step_number]
+            self.trunumunits = [self.truzealots, self.trustalkers, self.trusentries,self.truimmortals,self.truprobes,self.step_number]
             self.truzealots = 0
             self.trustalkers = 0
             self.trusentries = 0
             self.truimmortals = 0
             self.truprobes = 0
             return actions.FUNCTIONS.move_camera((self.xc, self.yc))
-        ##### REMEBER TO DO SOMETHING WITH self.trunumunits  BEFORE YOU PAN THE SCREEN AGAIN                
+            ##### REMEBER TO DO SOMETHING WITH self.trunumunits  BEFORE YOU PAN THE SCREEN AGAIN                
             if self.sub_action_number % 4:
+                
+                state = ql.get_scaled_value('SIMPLE', n_zealot=trunumunits[0], 
+                                            n_stalker=trunumunits[1], 
+                                            n_immortal=trunumunits[2],
+                                            n_sentury=trunumunits[3],
+                                            time=trunumunits[4])
+                last_reward = self.get_score(obs)
+                
+                action = self.Q_List.get_max_action(state)
+                self.Q_List.set_reward(state, action, last_reward)
+                
+                
+                new_x, new_y = actionToMovement(action, )
+                
+                
             """
             if self.sub_action_number == 1:
                 return actions.FUNCTIONS.select_control_group("recall", 0)
