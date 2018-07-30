@@ -27,16 +27,7 @@ INIT OF THE CLASS
 class ProtossAgent(base_agent.BaseAgent):
 
 
-    truzealots = 0
-    truimmortals = 0
-    trustalkers = 0
-    trusentries = 0
-    truprobes = 0
     
-    trunumunits = [truzealots,trustalkers,trusentries,truimmortals,truprobes,t]
-    finalNumUnits = []    
-    xc = 10 #changed from 10
-    yc = 9
     
     
     
@@ -61,7 +52,7 @@ class ProtossAgent(base_agent.BaseAgent):
     
     ARMY_COMPOSITION = [units.Protoss.Zealot, units.Protoss.Stalker, units.Protoss.Sentry, units.Protoss.Observer, units.Protoss.Immortal, units.Protoss.HighTemplar]
     
-    Q_List = ql.Q_List('Army_Q.csv', 'LEARNING')
+    Q_List = ql.Q_list('Army_Q.csv', 'LEARNING')
     
     attack_number = 0
     step_number = 0
@@ -869,11 +860,11 @@ class ProtossAgent(base_agent.BaseAgent):
                 if self.sub_action_number == 10:
                     return actions.FUNCTIONS.select_army("now")
                     
-                state = ql.get_scaled_value('SIMPLE', n_zealot=trunumunits[0], 
-                                            n_stalker=trunumunits[1], 
-                                            n_immortal=trunumunits[2],
-                                            n_sentury=trunumunits[3],
-                                            time=trunumunits[4])
+                state = ql.get_scaled_value('SIMPLE', n_zealot=self.trunumunits[0], 
+                                            n_stalker=self.trunumunits[1], 
+                                            n_immortal=self.trunumunits[2],
+                                            n_sentury=self.trunumunits[3],
+                                            time=self.trunumunits[4])
                 last_reward = self.get_score(obs)
                 
                 action = self.Q_List.get_max_action(state)
@@ -891,7 +882,7 @@ class ProtossAgent(base_agent.BaseAgent):
                 our_y = kmeans.cluster_centers_[0][1]
                 
                 
-                new_x, new_y = actionToMovement(action, our_x, our_y, main_enemy_base[0], main_enemy_base[1], main_base_camera[0], main_base_camera[1])
+                new_x, new_y = self.actionToMovement(action, our_x, our_y, self.main_enemy_base[0], self.main_enemy_base[1], self.main_base_camera[0], self.main_base_camera[1])
                 
                 if self.can_do(actions.FUNCTIONS.Move_minimap.id):
                     return actions.FUNCTIONS.Move_minimap("now", (new_x, new_y))

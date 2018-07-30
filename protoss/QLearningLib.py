@@ -73,6 +73,9 @@ class Q_list():
         #rows(index) = states
         #columns is actions
         
+        self.min_state = 11111
+        self.max_state = 55555
+        
         # will store past actions
         self.past_actions = pd.DataFrame(index=[], columns=['state', 'action'])
         #a number if you want to limit how many future steps are counted, -1 if you want no endpoint
@@ -94,7 +97,8 @@ class Q_list():
       
     """This will return the desired action accounting for Epsilon"""
     def get_max_action(self, state):
-        if state in self.q_list.index :
+        
+        if state >= min_state and state <= max_state:
             if rd.rand(0,1) > self.epsilon:
                 return self.q_list.loc[state].idxmax()
             else :
@@ -113,7 +117,7 @@ class Q_list():
                 current_val = current_val + last_reward * (self.gamma ** (len(self.past_actions) - i))
                 
                
-        if state in self.q_list.index and action in self.q_list.columns:
+        if state >= self.min_state and state <= self.max_state and action >= 1 and action <= 5:
             if len(self.past_actions - 1) >= 0:
                 m = len(self.past_actions - 1)
                 st = self.past_actions.loc[m]['state']
