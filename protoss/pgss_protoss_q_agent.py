@@ -165,56 +165,6 @@ class ProtossAgent(base_agent.BaseAgent):
             return True
         return False
     
-    def Find_Units(self,obs,time): # time has to be greater than 8, its what mod you want
-        if self.sub_action_number%time ==0 or self.sub_action_number%time ==1 or 
-        self.sub_action_number%time ==2 or self.sub_action_number%time ==3 or 
-        self.sub_action_number%time == 4 or self.sub_action_number%time ==5
-        or self.sub_action_number%time ==6 or self.sub_action_number%time ==7
-        or self.sub_action_number%time ==8:
-            
-            
-        # time however many steps you want it to run
-            zealots = self.get_units_by_type(obs, units.Protoss.Zealot)
-            stalkers = self.get_units_by_type(obs, units.Protoss.Stalker)
-            sentries = self.get_units_by_type(obs, units.Protoss.Sentry)
-            observers = self.get_units_by_type(obs, units.Protoss.Observer)
-            immortals = self.get_units_by_type(obs, units.Protoss.Immortal)
-            templars = self.get_units_by_type(obs, units.Protoss.HighTemplar)
-            probes = self.get_units_by_type(obs, units.Protoss.Probe)
-            numUnits = {len(zealots),len(stalkers),len(sentries),len(immortals)}
-    
-    
-            if self.xc <54:
-                self.truzealots += len(zealots)
-                self.trustalkers += len(stalkers)
-                self.trusentries += len(sentries)
-                self.truimmortals += len(immortals)
-                self.truprobes += len(probes)
-                self.trunumunits = [self.truzealots,self.trustalkers,self.trusentries,self.truimmortals,self.truprobes,self.t]
-            #print(len(probes))
-            #print(self.truprobes)
-            #print(self.trunumunits)
-                if self.yc < 54:
-                    self.yc += 16
-                    return actions.FUNCTIONS.move_camera((self.xc, self.yc))
-                else:
-                    self.xc +=18
-                    self.yc = 9
-            else:
-                self.xc = 10
-                self.yc = 9 
-                self.truzealots += len(zealots)
-                self.trustalkers += len(stalkers)
-                self.trusentries += len(sentries)
-                self.truimmortals += len(immortals)
-                self.truprobes += len(probes)
-            #print(self.trunumunits)# get rid of the print statement
-                finalNumUnits = [self.truzealots,self.trustalkers,self.trusentries,self.truimmortals,self.truprobes,self.sub_action_number]
-                self.truzealots = 0
-                self.trustalkers = 0
-                self.trusentries = 0
-                self.truimmortals = 0
-                self.truprobes = 0
     
     
     #Adds all units of the same type on screen to an array
