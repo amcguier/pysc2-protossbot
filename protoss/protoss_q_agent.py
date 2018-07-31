@@ -240,6 +240,9 @@ class ProtossAgent(base_agent.BaseAgent):
     def get_score(self, obs):
         self.real_old_score = self.old_score
         self.old_score = 4*obs.observation.score_cumulative.killed_value_structures + obs.observation.score_cumulative.killed_value_units
+        print("real old score: " + str(self.real_old_score))
+        print("old score: " + str(self.old_score))
+        print("get score reward: " + str(4*obs.observation.score_cumulative.killed_value_structures + obs.observation.score_cumulative.killed_value_units - self.real_old_score))
         return (4*obs.observation.score_cumulative.killed_value_structures + obs.observation.score_cumulative.killed_value_units - self.real_old_score)
         
     

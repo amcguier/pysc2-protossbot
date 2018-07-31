@@ -121,7 +121,23 @@ class Q_list():
         print("action: " + str(action))
         
         if self.is_learning:
-            
+            print("last reward: " + str(last_reward))
+            if last_reward != 0:
+                
+                print()
+                print()
+                print()
+                print()
+                print()
+                print()
+                print("lr != 0: state is: " + str(state))
+                print("lr != 0: action is: " + str(action))
+                print()
+                print()
+                print()
+                print()
+                print()
+                print()
             st = self.past_actions.loc[1]['state']
             ac = self.past_actions.loc[1]['action']
 
