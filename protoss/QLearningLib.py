@@ -87,7 +87,7 @@ class Q_list():
         #likleyhood that we try new spots
         if mode == "LEARNING" :
             self.is_learning = True
-            self.epsilon = 0.85
+            self.epsilon = 0.95
         else : 
             self.is_learning = False
             self.epsilon = 0.0001
@@ -95,7 +95,7 @@ class Q_list():
         
         self.q_list = pd.read_csv(path, index_col=0)
         print("Q-list generated from path : " + path)
-        print(self.q_list)
+        
       
     
     
@@ -104,13 +104,12 @@ class Q_list():
         
         if state >= self.min_state and state <= self.max_state:
             if rd.randint(0,100) < 100 * self.epsilon:
-                print('HELLO _ 2')
+               
+                
                 return self.q_list.loc[state].idxmax()
             else :
-                print(self.q_list)
+                
                 rand = rd.randint(1, len(self.q_list.loc[state]) - 1)
-                print('Rand:' + str(rand))
-                print('len' + str(len(self.q_list.loc[state])))
                 return self.q_list.loc[state][rand]
         
     
@@ -118,7 +117,6 @@ class Q_list():
     """This will set the reward for a given state. won't do any calculations"""
     def set_reward(self, state, action, last_reward):
         if self.is_learning:
-            print(len(self.past_actions))
             for i in range(0 , len(self.past_actions)):
                 st = self.past_actions.loc[i]['state']
                 ac = self.past_actions.loc[i]['action']
@@ -135,9 +133,9 @@ class Q_list():
                 self.q_list.loc[st][ac] = last_reward  
                 
             self.past_actions = self.past_actions.append(pd.DataFrame(index=[len(self.past_actions)],data={'state' : [state], 'action' : [action]}))
-            print(self.past_actions)
+
             return True
-        print(self.past_actions)
+
         return False
     
     
