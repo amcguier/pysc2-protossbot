@@ -68,8 +68,9 @@ def get_scaled_value(typ, n_zealot=0, n_stalker=0, n_immortal=0, n_sentury= 0, t
 
 """ Q_List Driver Class"""
 class Q_list():
-    
-    
+    states = [10]
+    actions = [10]
+    index = 0
     def __init__(self, path, mode='LEARNING'):
         #rows(index) = states
         #columns is actions
@@ -78,7 +79,8 @@ class Q_list():
         self.max_state = 55555
         
         # will store past actions
-        self.past_actions = pd.DataFrame(index=[], columns=['state', 'action'])
+        self.past_actions = pd.DataFrame(0,index=[0,1], columns=['state', 'action'])
+        print(self.past_actions)
         #a number if you want to limit how many future steps are counted, -1 if you want no endpoint
         self.recersive_units = 10
         #how much each step into the future retains value
@@ -116,26 +118,30 @@ class Q_list():
     
     """This will set the reward for a given state. won't do any calculations"""
     def set_reward(self, state, action, last_reward):
+    
         if self.is_learning:
-            for i in range(0 , len(self.past_actions)):
-                st = self.past_actions.loc[i]['state']
-                ac = self.past_actions.loc[i]['action']
-                
+            
+            st = self.past_actions.loc[1]['state']
+            ac = self.past_actions.loc[1]['action']
+            if ac != 0 and st != 0:   
                 current_val = self.q_list.loc[st][ac]
-                current_val = current_val + last_reward * (self.gamma ** (len(self.past_actions) - i))
-                
+                current_val = current_val + last_reward * self.gamma 
+                self.q_list.loc[st][ac] = current_val
                
         if int(state) >= int(self.min_state) and int(state) <= int(self.max_state) and int(action) >= 1 and int(action) <= 5:
-            if len(self.past_actions) - 1 >= 0:
-                m = len(self.past_actions) - 1
-                st = self.past_actions.loc[m]['state']
-                ac = self.past_actions.loc[m]['action']
-                self.q_list.loc[st][ac] = last_reward  
-                
-            self.past_actions = self.past_actions.append(pd.DataFrame(index=[len(self.past_actions)],data={'state' : [state], 'action' : [action]}))
-
+            
+            last_s = st = self.past_actions.loc[1]['state']
+            last_a = self.past_actions.loc[1]['action']
+            
+            self.past_actions.loc[0]['state'] = last_s
+            self.past_actions.loc[0]['action'] = last_a
+            
+            self.past_actions.loc[1]['state'] = state
+            self.past_actions.loc[1]['actions'] = action
+            
+            print(self.past_actions)
             return True
-
+        print(self.past_actions)
         return False
     
     
