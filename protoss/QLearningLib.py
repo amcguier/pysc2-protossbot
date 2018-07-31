@@ -1,3 +1,19 @@
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+"""
+Created on Thu Jul 26 15:47:13 2018
+@author: EvanTroop
+Sources : 
+    https://stackoverflow.com/questions/22963263/creating-a-zero-filled-pandas-data-frame
+    https://stackoverflow.com/questions/18692261/whats-a-simple-way-to-hard-code-a-6x6-numpy-matrix
+    https://stackoverflow.com/questions/16729574/how-to-get-a-value-from-a-cell-of-a-dataframe
+    https://stackoverflow.com/questions/16729574/how-to-get-a-value-from-a-cell-of-a-dataframe
+    https://stackoverflow.com/questions/10202570/pandas-dataframe-find-row-where-values-for-column-is-maximal
+    https://stackoverflow.com/questions/13717554/weird-behaviour-initializing-a-numpy-array-of-string-data
+    
+    
+"""
+
 import pandas as pd
 import tensorflow as tf
 import numpy as np
@@ -35,16 +51,18 @@ scales = [[1,2,4,8,16], #Zealot
 def get_scaled_value(typ, n_zealot=0, n_stalker=0, n_immortal=0, n_sentury= 0, time=0):
     if typ == 'SIMPLE':
         numbers = [n_zealot, n_stalker, n_immortal, n_sentury, time]
-        print(numbers)
         outs = [0,0,0,0,0]
         for i in range(len(numbers)):
+            print("scales:  " + str(scales[i]))
             for j in range(len(scales[i])):
-                if scales[i][j] > numbers[i]:
-                    outs[i] = j
+
+                if scales[i][j] >= numbers[i]:
+
+                    outs[i] = j + 1
                     break
             if(outs[i] == 0):
                 outs[i] = 5
-        
+        print("OUTS : : :" + str(outs))
         state = 10000*outs[0] + 1000*outs[1] + 100*outs[2] + 10*outs[3] + outs[4]
         return state
         
@@ -63,7 +81,7 @@ class Q_list():
         
         # will store past actions
         self.past_actions = pd.DataFrame(0,index=[0,1], columns=['state', 'action'])
-        print(self.past_actions)
+
         #a number if you want to limit how many future steps are counted, -1 if you want no endpoint
         self.recersive_units = 10
         #how much each step into the future retains value
@@ -81,7 +99,7 @@ class Q_list():
         
         self.q_list = pd.read_csv(path, index_col=0)
         print("Q-list generated from path : " + path)
-        print(self.q_list)
+
         
       
     
@@ -100,7 +118,7 @@ class Q_list():
     
     """This will set the reward for a given state. won't do any calculations"""
     def set_reward(self, state, action, last_reward):
-        print(action)
+        print("action: " + str(action))
         
         if self.is_learning:
             
@@ -109,11 +127,11 @@ class Q_list():
 
             if st != 0:   
                 print(str(st) + "    " + str(ac))
-                print(self.q_list)
-                print("reward stuff")
                 current_val = self.q_list.loc[st][str(ac)]
-                #current_val = current_val + last_reward #* self.gamma 
-                current_val =+ 1
+                current_val = current_val + last_reward #* self.gamma 
+                print("reward: " + str(last_reward))
+                print("current_val: " + str(current_val))
+                #current_val =+ 1
                 print("state is: " + str(st))
                 print("action is: " + str(ac))
                 print("type is: " + str(type(st)))
@@ -138,8 +156,6 @@ class Q_list():
     
     
     def export_q_list(self):
-        print("q  list in export")
-        print(self.q_list)
         self.q_list.to_csv(self.path)
         print("Q-List was successfully exported to path : " + self.path)
         
@@ -148,10 +164,19 @@ class Q_list():
         self.export_q_list()
         print("End of Game Funcitons Complete")
     
-Q = Q_list("Army_Q.csv")
-Q.export_q_list()
-print("HHEEHHSS")
-Q2 = Q_list('Army_Q.csv')
 
 
 #generate_csv("Army_Q.csv")
+ql = Q_list('Army_Q.csv')
+print(ql.q_list)
+#print(ql.get_max_action(11111))
+#ql.set_reward(11111, 2, 10)
+#ql.set_reward(11112, 3, 10)
+#ql.set_reward(11113, 3, 10)
+print(get_scaled_value("SIMPLE", n_zealot=1, n_stalker=3, n_immortal=4, n_sentury= 6, time=100))
+#print(ql.q_list)
+#ql.set_reward(11114, 4, 10)
+#print("HELLO")
+#print(ql.get_max_action(11111))
+#print("HHHsssHHH")
+#print(len(ql.q_list.loc[11111]))

@@ -30,7 +30,7 @@ class ProtossAgent(base_agent.BaseAgent):
     old_score = 0
     
     
-    
+    should_reset_unit_count = False
     SCREEN_DIM = 96
     MINIMAP_DIM = 64
     ARMY_ATTACK_THRESHOLD = 25
@@ -812,8 +812,8 @@ class ProtossAgent(base_agent.BaseAgent):
                     self.action_number = 10
                 if self.unit_type_is_selected(obs, self.ARMY_COMPOSITION[x]):
                     return actions.FUNCTIONS.select_control_group("set", x)
-                
-            
+        #probes = self.get_units_by_type(obs, units.Protoss.Probe)        
+        #print("len of probes" + str(len(probes)))
         #Send army to rekt enemy ezzzzzzzz
         if self.action_number == 10:
             
@@ -857,14 +857,22 @@ class ProtossAgent(base_agent.BaseAgent):
                 self.trusentries += len(sentries)
                 self.truimmortals += len(immortals)
                 self.truprobes += len(probes)
-                
-                self.trunumunits = [self.truzealots, self.trustalkers, self.trusentries,self.truimmortals,self.step_number]
+
+                self.trunumunits = [self.truzealots, self.trustalkers, self.trusentries,self.truimmortals,self.truprobes,self.step_number]
+                print(self.trunumunits)
+                if self.xc == 45 and self.yc == 38:
+                    self.should_reset_unit_count = True
+                else:
+                    self.should_reset_unit_count = False
+ 
+                return actions.FUNCTIONS.move_camera((self.xc, self.yc))
+            
+            if self.should_reset_unit_count == True:
                 self.truzealots = 0
+                self.truimmortals = 0
                 self.trustalkers = 0
                 self.trusentries = 0
-                self.truimmortals = 0
                 self.truprobes = 0
-                return actions.FUNCTIONS.move_camera((self.xc, self.yc))
             ##### REMEBER TO DO SOMETHING WITH self.trunumunits  BEFORE YOU PAN THE SCREEN AGAIN                
             print("attack number even 2")
             if self.sub_action_number == 10:
