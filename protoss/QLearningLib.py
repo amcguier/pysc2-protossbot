@@ -74,7 +74,7 @@ class Q_list():
     def __init__(self, path, mode='LEARNING'):
         #rows(index) = states
         #columns is actions
-        
+        self.path = path
         self.min_state = 11111
         self.max_state = 55555
         
@@ -145,6 +145,7 @@ class Q_list():
     
     def export_q_list(self):
         self.q_list.to_csv(self.path, index=False)
+        print("Q-List was successfully exported to path : " + self.path)
         
         
     def end_of_game(self):
