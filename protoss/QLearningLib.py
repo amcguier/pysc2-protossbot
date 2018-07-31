@@ -100,12 +100,14 @@ class Q_list():
     def get_max_action(self, state):
         
         if state >= self.min_state and state <= self.max_state:
-            if rd.randint(0,100) > 100 * self.epsilon and False:
+            if rd.randint(0,100) < 100 * self.epsilon:
+                print('HELLO _ 2')
                 return self.q_list.loc[state].idxmax()
             else :
                 print(self.q_list)
-                rand = rd.randint(1, len(self.q_list.loc[state]))
+                rand = rd.randint(1, len(self.q_list.loc[state]) - 1)
                 print('Rand:' + str(rand))
+                print('len' + str(len(self.q_list.loc[state])))
                 return self.q_list.loc[state][rand]
         
     """This will set the reward for a given state. won't do any calculations"""
