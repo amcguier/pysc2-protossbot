@@ -132,8 +132,8 @@ class Q_list():
                 print(self.q_list)
                 print("reward stuff")
                 current_val = self.q_list.loc[st][str(ac)]
-                #current_val = current_val + last_reward #* self.gamma 
-                current_val =+ 1
+                current_val = current_val + last_reward #* self.gamma 
+                
                 print("state is: " + str(st))
                 print("action is: " + str(ac))
                 print("type is: " + str(type(st)))
