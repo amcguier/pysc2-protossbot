@@ -88,6 +88,7 @@ class Q_list():
         
         #likleyhood that we try new spots
         if mode == "LEARNING" :
+            print("LEARNING")
             self.is_learning = True
             self.epsilon = 0.95
         else : 
@@ -105,12 +106,9 @@ class Q_list():
     def get_max_action(self, state):
         
         if state >= self.min_state and state <= self.max_state:
-            if rd.randint(0,100) < 100 * self.epsilon:
-               
-                
+            if rd.randint(0,100) > 100 * self.epsilon:
                 return self.q_list.loc[state].idxmax()
             else :
-                
                 rand = rd.randint(1, len(self.q_list.loc[state]) - 1)
                 return self.q_list.loc[state][rand]
         
@@ -139,9 +137,9 @@ class Q_list():
             self.past_actions.loc[1]['state'] = state
             self.past_actions.loc[1]['actions'] = action
             
-            print(self.past_actions)
+
             return True
-        print(self.past_actions)
+
         return False
     
     
@@ -187,9 +185,10 @@ print(past_actions)
 
 #generate_csv("Army_Q.csv")
 ql = Q_list('Army_Q.csv')
-ql.set_reward(11111, 1, 10)
-ql.set_reward(11112, 1, 10)
-ql.set_reward(11113, 1, 10)
+print(ql.get_max_action(11111))
+#ql.set_reward(11111, 1, 10)
+#ql.set_reward(11112, 1, 10)
+#ql.set_reward(11113, 1, 10)
 #print("HELLO")
 #print(ql.get_max_action(11111))
 #print("HHHsssHHH")
