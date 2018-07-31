@@ -116,15 +116,17 @@ class Q_list():
     
     """This will set the reward for a given state. won't do any calculations"""
     def set_reward(self, state, action, last_reward):
-    
+        print(action)
         if self.is_learning:
             
             st = self.past_actions.loc[1]['state']
             ac = self.past_actions.loc[1]['action']
-            if ac != 0 and st != 0:   
+
+            if st != 0:   
                 current_val = self.q_list.loc[st][ac]
-                current_val = current_val + last_reward * self.gamma 
+                current_val = current_val + last_reward #* self.gamma 
                 self.q_list.loc[st][ac] = current_val
+
                
         if int(state) >= int(self.min_state) and int(state) <= int(self.max_state) and int(action) >= 1 and int(action) <= 5:
             
@@ -135,9 +137,9 @@ class Q_list():
             self.past_actions.loc[0]['action'] = last_a
             
             self.past_actions.loc[1]['state'] = state
-            self.past_actions.loc[1]['actions'] = action
-            
+            self.past_actions.loc[1]['action'] = action
 
+            
             return True
 
         return False
@@ -185,11 +187,12 @@ print(past_actions)
 """
 
 #generate_csv("Army_Q.csv")
-ql = Q_list('Army_Q.csv')
-print(ql.get_max_action(11111))
-#ql.set_reward(11111, 1, 10)
-#ql.set_reward(11112, 1, 10)
-#ql.set_reward(11113, 1, 10)
+#ql = Q_list('Army_Q.csv')
+#print(ql.get_max_action(11111))
+#ql.set_reward(11111, 2, 10)
+#ql.set_reward(11112, 3, 10)
+#ql.set_reward(11113, 3, 10)
+#ql.set_reward(11114, 4, 10)
 #print("HELLO")
 #print(ql.get_max_action(11111))
 #print("HHHsssHHH")
