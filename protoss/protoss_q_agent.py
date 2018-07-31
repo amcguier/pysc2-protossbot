@@ -133,9 +133,11 @@ class ProtossAgent(base_agent.BaseAgent):
         #Invalid Action Check
         if newX >= 64 or newX < 0 or newY >= 64 or newY < 0:
             valid = False
+            
         if valid:
             return newX, newY
         else:
+            
             return currentX, currentY
     
    
@@ -240,11 +242,11 @@ class ProtossAgent(base_agent.BaseAgent):
     def get_score(self, obs):
         self.real_old_score = self.old_score
         self.old_score = 4*obs.observation.score_cumulative.killed_value_structures + obs.observation.score_cumulative.killed_value_units
-        print("real old score: " + str(self.real_old_score))
-        print("old score: " + str(self.old_score))
-        print("get score reward: " + str(4*obs.observation.score_cumulative.killed_value_structures + obs.observation.score_cumulative.killed_value_units - self.real_old_score))
-        return (4*obs.observation.score_cumulative.killed_value_structures + obs.observation.score_cumulative.killed_value_units - self.real_old_score)
-        
+        #print("real old score: " + str(self.real_old_score))
+        #print("old score: " + str(self.old_score))
+        #print("get score reward: " + str(4*obs.observation.score_cumulative.killed_value_structures + obs.observation.score_cumulative.killed_value_units - self.real_old_score))
+        #return (4*obs.observation.score_cumulative.killed_value_structures + obs.observation.score_cumulative.killed_value_units - self.real_old_score)
+        return (4*obs.observation.score_cumulative.killed_value_structures + obs.observation.score_cumulative.killed_value_units)
     
     #Returns an action to the game at the end of every step
     def step(self, obs):
@@ -862,7 +864,7 @@ class ProtossAgent(base_agent.BaseAgent):
                 self.truprobes += len(probes)
 
                 self.trunumunits = [self.truzealots, self.trustalkers, self.trusentries,self.truimmortals,self.truprobes,self.step_number]
-                print(self.trunumunits)
+                #print(self.trunumunits)
                 if self.xc == 45 and self.yc == 38:
                     self.should_reset_unit_count = True
                 else:
@@ -877,12 +879,19 @@ class ProtossAgent(base_agent.BaseAgent):
                 self.trusentries = 0
                 self.truprobes = 0
             ##### REMEBER TO DO SOMETHING WITH self.trunumunits  BEFORE YOU PAN THE SCREEN AGAIN                
-            print("attack number even 2")
+            #print("attack number even 2")
+            print("sub action number: " + str(self.sub_action_number))
+            print("can do select army: " + str(self.can_do(obs, actions.FUNCTIONS.select_army.id)))
             if self.sub_action_number == 10:
                 if self.can_do(obs, actions.FUNCTIONS.select_army.id):
-                    if self.army_is_selected == False:
-                        self.army_is_selected = True
-                        return actions.FUNCTIONS.select_army("select")
+                    print("selected Army")
+                    #self.sub_action_number += 1
+                    print("sub action number 3: " + str(self.sub_action_number))
+                    return actions.FUNCTIONS.select_army("select")
+                    
+            print("sub action number 2: " + str(self.sub_action_number))
+            if self.sub_action_number == 11:
+                if self.can_do(obs, actions.FUNCTIONS.select_army.id):
                     print("attack number even 3")   
                     state = ql.get_scaled_value('SIMPLE', n_zealot=self.trunumunits[0], 
                                                 n_stalker=self.trunumunits[1], 
@@ -902,26 +911,26 @@ class ProtossAgent(base_agent.BaseAgent):
                     kmeans = KMeans(n_clusters = 1)
                     if len(pixels) > 0:
                         kmeans.fit(pixels)
-                    print("attack number even 4")    
+                    #print("attack number even 4")    
                     our_x = kmeans.cluster_centers_[0][0]
                     our_y = kmeans.cluster_centers_[0][1]
-                    print("q_steps" + str(q_steps))
+                    #print("q_steps" + str(q_steps))
                     if q_steps % 8 == 0:
                         self.Q_List.export_q_list()
-                    print("action" + str(action))
+                    #print("action" + str(action))
                     new_x, new_y = self.actionToMovement(action, our_x, our_y, self.main_enemy_base[0], 
                                                          self.main_enemy_base[1], self.main_base_camera[0], 
                                                          self.main_base_camera[1])
                     q_steps += 1
                     #new_x, new_y = self.actionToMovement(self, action, 32, 32, 0, 0, 64)
-                    print("past actionToMovement")
+                    #print("past actionToMovement")
                 
             
-            
+                    self.army_is_selected = False
                 
                     if self.can_do(obs, actions.FUNCTIONS.Move_minimap.id):
-                        self.army_is_selected = False
-                        return actions.FUNCTIONS.Move_minimap("now", (new_x, new_y))
+                        
+                        return actions.FUNCTIONS.Attack_minimap("now", (new_x, new_y))
                     
                     
             self.sub_action_number = 0

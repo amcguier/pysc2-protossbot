@@ -53,7 +53,7 @@ def get_scaled_value(typ, n_zealot=0, n_stalker=0, n_immortal=0, n_sentury= 0, t
         numbers = [n_zealot, n_stalker, n_immortal, n_sentury, time]
         outs = [0,0,0,0,0]
         for i in range(len(numbers)):
-            print("scales:  " + str(scales[i]))
+            #print("scales:  " + str(scales[i]))
             for j in range(len(scales[i])):
 
                 if scales[i][j] >= numbers[i]:
@@ -122,35 +122,20 @@ class Q_list():
         
         if self.is_learning:
             print("last reward: " + str(last_reward))
-            if last_reward != 0:
-                
-                print()
-                print()
-                print()
-                print()
-                print()
-                print()
-                print("lr != 0: state is: " + str(state))
-                print("lr != 0: action is: " + str(action))
-                print()
-                print()
-                print()
-                print()
-                print()
-                print()
+
             st = self.past_actions.loc[1]['state']
             ac = self.past_actions.loc[1]['action']
 
             if st != 0:   
-                print(str(st) + "    " + str(ac))
+                #print(str(st) + "    " + str(ac))
                 current_val = self.q_list.loc[st][str(ac)]
                 current_val = current_val + last_reward #* self.gamma 
-                print("reward: " + str(last_reward))
-                print("current_val: " + str(current_val))
+                #print("reward: " + str(last_reward))
+                #print("current_val: " + str(current_val))
                 #current_val =+ 1
-                print("state is: " + str(st))
-                print("action is: " + str(ac))
-                print("type is: " + str(type(st)))
+                #print("state is: " + str(st))
+                #print("action is: " + str(ac))
+                #print("type is: " + str(type(st)))
                 self.q_list.loc[st][str(ac)] = current_val
 
                
@@ -196,3 +181,5 @@ print(get_scaled_value("SIMPLE", n_zealot=1, n_stalker=3, n_immortal=4, n_sentur
 #print(ql.get_max_action(11111))
 #print("HHHsssHHH")
 #print(len(ql.q_list.loc[11111]))
+
+#generate_csv("Army_Q.csv")
