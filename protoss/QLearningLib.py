@@ -69,7 +69,7 @@ def get_scaled_value(typ, n_zealot=0, n_stalker=0, n_immortal=0, n_sentury= 0, t
 """ Q_List Driver Class"""
 class Q_list():
     
-    def __init__(self, path, mode):
+    def __init__(self, path, mode='LEARNING'):
         #rows(index) = states
         #columns is actions
         
@@ -92,18 +92,20 @@ class Q_list():
             self.epsilon = 0.0001
         
         
-        self.q_list = pd.read_csv(path)
+        self.q_list = pd.read_csv(path, index_col=0)
         print("Q-list generated from path : " + path)
+        print(self.q_list)
       
     """This will return the desired action accounting for Epsilon"""
     def get_max_action(self, state):
         
-        if state >= min_state and state <= max_state:
-            if rd.rand(0,1) > self.epsilon:
+        if state >= self.min_state and state <= self.max_state:
+            if rd.randint(0,100) > 100 * self.epsilon and False:
                 return self.q_list.loc[state].idxmax()
             else :
-                
-                rand = rd.randint(0, len(self.q_list[state]))
+                print(self.q_list)
+                rand = rd.randint(1, len(self.q_list.loc[state]))
+                print('Rand:' + str(rand))
                 return self.q_list.loc[state][rand]
         
     """This will set the reward for a given state. won't do any calculations"""
@@ -135,7 +137,7 @@ class Q_list():
         
         
     def end_of_game(self):
-        self.export_q_list(self)
+        self.export_q_list()
         print("End of Game Funcitons Complete")
 
 #zs = pd.DataFrame(0, index=['state1','state2','state3','state4'], columns=['action1','action2'])
@@ -169,5 +171,11 @@ for i in range(len(past_actions)):
     print(past_actions.loc[i]['action'])
 print(past_actions)
 """
+#generate_csv("Army_Q.csv")
+ql = Q_list('Army_Q.csv')
+print("HELLO")
+print(ql.get_max_action(11111))
+print("HHHsssHHH")
+print(len(ql.q_list.loc[11111]))
 
 

@@ -96,7 +96,7 @@ class ProtossAgent(base_agent.BaseAgent):
     trusentries = 0
     truprobes = 0
 
-    trunumunits = {truzealots,trustalkers,trusentries,truimmortals,truprobes,t}
+    trunumunits = {truzealots,trustalkers,trusentries,truimmortals,truprobes,step_number}
     
     xc = 10 #changed from 10
     yc = 9
