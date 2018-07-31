@@ -305,3 +305,24 @@ data = pd.DataFrame(data = {'x' : x, 'y' : y, 'z' : z})
 
 nn = main(data, ['x', 'y'], 'z')
 """
+
+"""
+def get_scaled_value(typ, n_zealot=0, n_stalker=0, n_immortal=0, n_sentury= 0, time=0):
+    if typ == 'SIMPLE':
+        numbers = [n_zealot, n_stalker, n_immortal, n_sentury, time]
+        outs = [0,0,0,0,0]
+        for i in range(len(numbers)):
+            print(scales[i])
+            for j in range(len(scales[i])):
+
+                if scales[i][j] >= numbers[i]:
+
+                    outs[i] = j + 1
+                    break
+            if(outs[i] == 0):
+                outs[i] = 5
+        print("OUTS : : :" + str(outs))
+        state = 10000*outs[0] + 1000*outs[1] + 100*outs[2] + 10*outs[3] + outs[4]
+        return state
+        
+"""

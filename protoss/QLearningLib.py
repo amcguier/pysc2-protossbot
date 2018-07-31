@@ -55,13 +55,16 @@ def get_scaled_value(typ, n_zealot=0, n_stalker=0, n_immortal=0, n_sentury= 0, t
         numbers = [n_zealot, n_stalker, n_immortal, n_sentury, time]
         outs = [0,0,0,0,0]
         for i in range(len(numbers)):
+            print(scales[i])
             for j in range(len(scales[i])):
-                if scales[i][j] > numbers[i]:
-                    outs[i] = j
+
+                if scales[i][j] >= numbers[i]:
+
+                    outs[i] = j + 1
                     break
             if(outs[i] == 0):
                 outs[i] = 5
-        
+        print("OUTS : : :" + str(outs))
         state = 10000*outs[0] + 1000*outs[1] + 100*outs[2] + 10*outs[3] + outs[4]
         return state
         
@@ -85,7 +88,7 @@ class Q_list():
         self.recersive_units = 10
         #how much each step into the future retains value
         self.gamma = 0.8
-        
+       
         #likleyhood that we try new spots
         if mode == "LEARNING" :
             print("LEARNING")
@@ -98,6 +101,7 @@ class Q_list():
         
         self.q_list = pd.read_csv(path, index_col=0)
         print("Q-list generated from path : " + path)
+        print(self.q_list)
         
       
     
@@ -109,23 +113,31 @@ class Q_list():
             if rd.randint(0,100) > 100 * self.epsilon:
                 return self.q_list.loc[state].idxmax()
             else :
-                rand = rd.randint(1, len(self.q_list.loc[state]) - 1)
-                return self.q_list.loc[state][rand]
+                rand = rd.randint(1, 5)
+                return rand
         
     
     
     """This will set the reward for a given state. won't do any calculations"""
     def set_reward(self, state, action, last_reward):
         print(action)
+        
         if self.is_learning:
             
             st = self.past_actions.loc[1]['state']
             ac = self.past_actions.loc[1]['action']
 
             if st != 0:   
-                current_val = self.q_list.loc[st][ac]
-                current_val = current_val + last_reward #* self.gamma 
-                self.q_list.loc[st][ac] = current_val
+                print(str(st) + "    " + str(ac))
+                print(self.q_list)
+                print("reward stuff")
+                current_val = self.q_list.loc[st][str(ac)]
+                #current_val = current_val + last_reward #* self.gamma 
+                current_val =+ 1
+                print("state is: " + str(st))
+                print("action is: " + str(ac))
+                print("type is: " + str(type(st)))
+                self.q_list.loc[st][str(ac)] = current_val
 
                
         if int(state) >= int(self.min_state) and int(state) <= int(self.max_state) and int(action) >= 1 and int(action) <= 5:
@@ -146,52 +158,27 @@ class Q_list():
     
     
     def export_q_list(self):
-        self.q_list.to_csv(self.path, index=False)
+        print("q  list in export")
+        print(self.q_list)
+        self.q_list.to_csv(self.path)
         print("Q-List was successfully exported to path : " + self.path)
         
         
     def end_of_game(self):
         self.export_q_list()
         print("End of Game Funcitons Complete")
+    
 
-#zs = pd.DataFrame(0, index=['state1','state2','state3','state4'], columns=['action1','action2'])
-
-#zs.loc[state][action] = 1
-
-"""
-m = zs.loc['state1'].idxmax()
-print('state2' in zs.index)
-print()
-print(zs.loc['state1']['action1'])
-print()
-print(zs)
-print()
-print(m)
-"""
-"""
-past_actions = pd.DataFrame(index=[], columns=['action', 'state'])
-
-past_actions = past_actions.append(pd.DataFrame.from_dict({'action' : ['hello1'], 'state':['hello1']}), ignore_index=True)
-past_actions = past_actions.append(pd.DataFrame.from_dict({'action' : ['hello'], 'state':['hello1']}), ignore_index=True)
-
-past_actions = past_actions.append(pd.DataFrame.from_dict({'action' : ['hello'], 'state':['hello1']}), ignore_index=True)
-print(len(past_actions.loc[1]))
-print(past_actions.loc[1][0])
-
-
-si = rand.randint(0, high=10)
-print(si)
-for i in range(len(past_actions)):
-    print(past_actions.loc[i]['action'])
-print(past_actions)
-"""
 
 #generate_csv("Army_Q.csv")
-#ql = Q_list('Army_Q.csv')
+ql = Q_list('Army_Q.csv')
+print(ql.q_list)
 #print(ql.get_max_action(11111))
 #ql.set_reward(11111, 2, 10)
 #ql.set_reward(11112, 3, 10)
 #ql.set_reward(11113, 3, 10)
+print(get_scaled_value("SIMPLE", n_zealot=1, n_stalker=3, n_immortal=4, n_sentury= 6, time=100))
+#print(ql.q_list)
 #ql.set_reward(11114, 4, 10)
 #print("HELLO")
 #print(ql.get_max_action(11111))
