@@ -57,7 +57,7 @@ def get_scaled_value(typ, n_zealot=0, n_stalker=0, n_immortal=0, n_sentury= 0, t
         for i in range(len(numbers)):
             for j in range(len(scales[i])):
                 if scales[i][j] > numbers[i]:
-                    outs[i] = j + 1
+                    outs[i] = j
                     break
             if(outs[i] == 0):
                 outs[i] = 5
@@ -118,23 +118,23 @@ class Q_list():
     """This will set the reward for a given state. won't do any calculations"""
     def set_reward(self, state, action, last_reward):
         if self.is_learning:
-            
-                for i in range(0 , len(self.past_actions)):
-                    st = self.past_actions.loc[i]['state']
-                    ac = self.past_actions.loc[i]['action']
+            print(len(self.past_actions))
+            for i in range(0 , len(self.past_actions)):
+                st = self.past_actions.loc[i]['state']
+                ac = self.past_actions.loc[i]['action']
                 
-                    current_val = self.q_list.loc[st][ac]
-                    current_val = current_val + last_reward * (self.gamma ** (len(self.past_actions) - i))
+                current_val = self.q_list.loc[st][ac]
+                current_val = current_val + last_reward * (self.gamma ** (len(self.past_actions) - i))
                 
                
-        if state >= self.min_state and state <= self.max_state and action >= 1 and action <= 5:
+        if int(state) >= int(self.min_state) and int(state) <= int(self.max_state) and int(action) >= 1 and int(action) <= 5:
             if len(self.past_actions) - 1 >= 0:
                 m = len(self.past_actions) - 1
                 st = self.past_actions.loc[m]['state']
                 ac = self.past_actions.loc[m]['action']
                 self.q_list.loc[st][ac] = last_reward  
                 
-            self.past_actions = self.past_actions.append(pd.DataFrame.from_dict({'state' : [state], 'action' : [action]}))
+            self.past_actions = self.past_actions.append(pd.DataFrame(index=[len(self.past_actions)],data={'state' : [state], 'action' : [action]}))
             print(self.past_actions)
             return True
         print(self.past_actions)
@@ -180,13 +180,15 @@ for i in range(len(past_actions)):
     print(past_actions.loc[i]['action'])
 print(past_actions)
 """
-"""
+
 #generate_csv("Army_Q.csv")
 ql = Q_list('Army_Q.csv')
 ql.set_reward(11111, 1, 10)
+ql.set_reward(11112, 1, 10)
+ql.set_reward(11113, 1, 10)
 #print("HELLO")
 #print(ql.get_max_action(11111))
 #print("HHHsssHHH")
 #print(len(ql.q_list.loc[11111]))
-"""
+
 
