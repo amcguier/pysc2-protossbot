@@ -491,25 +491,26 @@ class ProtossAgent(base_agent.BaseAgent):
                         if self.time_supply_needed > 250:
                             if self.can_do(obs, actions.FUNCTIONS.Build_Pylon_screen.id):
                                 self.supply_needed = False
-                                if len(pylons) == 0:
-                                    unit_type = obs.observation["feature_screen"][features.SCREEN_FEATURES.unit_type.index]
-                                    mineral_y, mineral_x = (unit_type == units.Neutral.MineralField).nonzero()
-                                    x = 2*nexi[0].x - int(round(mineral_x.mean())) - 5*self.build_lean[0]
-                                    y = 2*nexi[0].y - int(round(mineral_y.mean())) - 5*self.build_lean[1]
-                                    self.first_pylon_location[0] = x
-                                    self.first_pylon_location[1] = y
-                                    return actions.FUNCTIONS.Build_Pylon_screen("queued", self.first_pylon_location)
-                                elif len(pylons) == 1 and len(gateways) > 0:
-                                    return actions.FUNCTIONS.Build_Pylon_screen("queued", (self.first_pylon_location[0] + self.build_lean[0]*40, self.first_pylon_location[1] - self.build_lean[1]*8))
-                                elif len(pylons) == 2:
-                                    return actions.FUNCTIONS.Build_Pylon_screen("queued", (self.first_pylon_location[0] - self.build_lean[0]*8, self.first_pylon_location[1] + self.build_lean[1]*40))
-                                elif len(pylons) == 3:
-                                    if self.build_forward_pylon:
-                                        self.camera_location = 2
-                                        return actions.FUNCTIONS.move_camera(self.army_rally_camera)
-                                    else:
-                                        self.camera_location = 1
-                                        return actions.FUNCTIONS.move_camera(self.natural_base_camera)
+                                if len(nexi) > 0:
+                                    if len(pylons) == 0:
+                                        unit_type = obs.observation["feature_screen"][features.SCREEN_FEATURES.unit_type.index]
+                                        mineral_y, mineral_x = (unit_type == units.Neutral.MineralField).nonzero()
+                                        x = 2*nexi[0].x - int(round(mineral_x.mean())) - 5*self.build_lean[0]
+                                        y = 2*nexi[0].y - int(round(mineral_y.mean())) - 5*self.build_lean[1]
+                                        self.first_pylon_location[0] = x
+                                        self.first_pylon_location[1] = y
+                                        return actions.FUNCTIONS.Build_Pylon_screen("queued", self.first_pylon_location)
+                                    elif len(pylons) == 1 and len(gateways) > 0:
+                                        return actions.FUNCTIONS.Build_Pylon_screen("queued", (self.first_pylon_location[0] + self.build_lean[0]*40, self.first_pylon_location[1] - self.build_lean[1]*8))
+                                    elif len(pylons) == 2:
+                                        return actions.FUNCTIONS.Build_Pylon_screen("queued", (self.first_pylon_location[0] - self.build_lean[0]*8, self.first_pylon_location[1] + self.build_lean[1]*40))
+                                    elif len(pylons) == 3:
+                                        if self.build_forward_pylon:
+                                            self.camera_location = 2
+                                            return actions.FUNCTIONS.move_camera(self.army_rally_camera)
+                                        else:
+                                            self.camera_location = 1
+                                            return actions.FUNCTIONS.move_camera(self.natural_base_camera)
                                     
             if self.sub_action_number == 9:
                 self.sub_action_number = 0
