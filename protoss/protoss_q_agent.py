@@ -822,7 +822,14 @@ class ProtossAgent(base_agent.BaseAgent):
         #print("len of probes" + str(len(probes)))
         #Send army to rekt enemy ezzzzzzzz
         if self.action_number == 10:
-            
+            print("obs units:")
+            print(obs.observation.unit_counts)
+            """
+            Zealot = 73
+            Sentry = 77
+            Stalker = 74
+            Immortal = 83
+            """
             zealots = self.get_units_by_type(obs, units.Protoss.Zealot)
             stalkers = self.get_units_by_type(obs, units.Protoss.Stalker)
             sentries = self.get_units_by_type(obs, units.Protoss.Sentry)
