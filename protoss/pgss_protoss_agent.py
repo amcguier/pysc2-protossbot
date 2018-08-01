@@ -1,105 +1,107 @@
 """
-Main Author of all PYSC2 Related Code:   Frederick Qiu
-Neural Network Optimizer (not in file):  Evan Troop
-Machine Learning Input and Organization: John Zhuang, Benjamin Chen, Amir Saman Naseri
+Author: Frederick Qiu
 
 Received much help from Steven Brown in the form of discord and basic tutorials:
 https://itnext.io/build-a-zerg-bot-with-pysc2-2-0-2self.SCREEN_DIM - 1375d2f58e
 https://itnext.io/how-to-locate-and-select-units-in-pysc2-2bb1c81f2ad3
 """
 
+#Better Pathfinding (not straight lines)
+#Blink usage
+
+
 from pysc2.agents import base_agent
 from pysc2.env import sc2_env
 from pysc2.lib import actions, features, units
 from absl import app
-import random, math
+import random, math, numpy, csv
 from sklearn.cluster import KMeans
-import csv
-
 
 class ProtossAgent(base_agent.BaseAgent):
     
-    ###########
-    #ADD ERROR CHECKING FOR COORDS BECAUSE UNITS CAN RUN OFF SCREEN WHILE SELECTED IF CHASING ENEMIES!!!!!
-    ###########
-#Larva
-#Drone
-#Zergling
-#Queen
-#Hydralisk
-#Baneling
-
-#Roach
-#Infestor
-#Mutalisk
-#Nydus Worm
-#Ultralisk
-#Brood Lord
-#Swarm Host
-#Viper
-
-#Overlord
-#Overseer
-#Corruptor 
-    
-    #IDK MAN
-    
-    
-    #res = []
-    
     SCREEN_DIM = 96
     MINIMAP_DIM = 64
-    ARMY_ATTACK_THRESHOLD = 25
-    
+    ARMY_ATTACK_THRESHOLD = 10
+    ARMY_RETREAT_THRESHOLD = 5
+    STORM_THRESHOLD = 4
     ARMY_RATIO = {
-            "Zealot": 4,
-            "Stalker": 10,
-            "Sentry": 4,
-            "Observer": 1,
-            "Immortal": 3,
-            "Templar": 3,
-            "Total": 25
+            "Stalker": 3,
+            "Sentry": 1,
+            "Templar": 1,
+            "Total": 5
             }
     
-    step_number = 0
-    action_number = 1
-    sub_action_number = 0
-    number_of_bases = 1
-    time_until_nexus = 2000
-    time_supply_needed = 250
-    time_idle_needed = 250
-    supply_needed = True
-    idle_needed = True
-    build_pylon = False
-    stop_worker_production = False
-    minerals_filled = False
+    ARMY_COMPOSITION = [units.Protoss.Zealot, units.Protoss.Stalker, units.Protoss.Sentry, units.Protoss.Observer, units.Protoss.Immortal, units.Protoss.HighTemplar]
     
-    resource_locations = []
-    main_base_camera = [0, 0]
-    natural_base_camera = [0, 0]
-    army_rally_camera = [0, 0]
-    main_enemy_base = [0, 0]
-    possible_enemy_base = [0, 0]
-    nexus_location = [0, 0]
-    build_lean = [0, 0]
-    first_pylon_location = [0, 0]
-    
-    geysers = []
-    
-    
+    wins = 0
+    iterations = 0
+
     
     #Initializes variables
     def __init__(self):
         super(ProtossAgent, self).__init__()
+        
+        
+        
+        self.step_number = 0
+        self.action_number = 1
+        self.sub_action_number = 0
+        self.number_of_bases = 1
+        self.camera_location = 0
+        self.time_until_nexus = 2000
+        self.time_until_warpgates = 1750
+        self.time_until_blink = 1850
+        self.time_until_storm = 1200
+        self.time_supply_needed = 250
+        self.time_shield_up = 300
+        self.time_chronoboost_effective = 0
+        self.supply_needed = True
+        self.build_forward_pylon = True
+        self.stop_worker_production = False
+        self.minerals_filled = False
+        self.possible_enemy_base_destroyed = False
+        self.main_enemy_base_destroyed = False
+        self.army_selected = False
+        self.researching_warpgates = False
+        self.researching_blink = False
+        self.researching_storm = False
+        self.attacking = False
+        self.written = False
+        
+        self.resource_locations = []
+        self.main_base_camera = [0, 0]
+        self.natural_base_camera = [0, 0]
+        self.army_rally_camera = [0, 0]
+        self.main_enemy_base = [0, 0]
+        self.possible_enemy_base = [0, 0]
+        self.nexus_location = [0, 0]
+        self.build_lean = [0, 0]
+        self.first_pylon_location = [0, 0]
+        
+        self.geysers = []
+        
+        self.power = []
+        
+        self.scout_information = []
+        
+        self.zerglings = 0
+        self.roaches = 0
+        self.drones = 0
+        self.warrens = 0
+        self.extractors = 0
+        
+        self.csv_row = []
+        
+        
     
     #Checks if selected unit is of the correct type
     def unit_type_is_selected(self, obs, unit_type):
         if (len(obs.observation.single_select) > 0 and
                 obs.observation.single_select[0].unit_type == unit_type):
-            return True    
+            return True
         if (len(obs.observation.multi_select) > 0 and
                 obs.observation.multi_select[0].unit_type == unit_type):
-            return True    
+            return True
         return False
     
     #Adds all units of the same type on screen to an array
@@ -119,66 +121,173 @@ class ProtossAgent(base_agent.BaseAgent):
     def get_distance(self, x1, y1, x2, y2):
         return math.sqrt(pow(x1 - x2, 2) + pow(y1 - y2, 2))
     
-    #Calculate the affinity generated by a specific unit for a location
-    def get_affinity(self, obs, control_group, x, y):
-        affinity = 0
+    #Calculate the affinity generated by effects
+    def get_effect_affinity(self, obs, control_group):
+        effect_affinity = numpy.zeros((24, 24), dtype = "int")
         all_effects = obs.observation.feature_screen.effects
+        value = 15
+        for i in range(int(round(self.SCREEN_DIM/4))):
+            for j in range(int(round(self.SCREEN_DIM/4))):
+                if all_effects[4*i + 1][4*j + 1] == 1 or all_effects[4*i + 1][4*j + 1] == 11:
+                    effect_affinity[i, j]+=(value*4)
+                elif all_effects[4*i + 1][4*j + 1] == 10:
+                    effect_affinity[i, j]-=(value*2)
+                elif all_effects[4*i + 1][4*j + 1] == 2:
+                    effect_affinity[i, j]+=(value*1)
+        return effect_affinity
+    
+    #Calculate the affinity generated by effects: Psionic Storm specific
+    def get_effect_affinity_storm(self, obs):
+        effect_affinity = numpy.zeros((24, 24), dtype = "int")
+        all_effects = obs.observation.observation.feature_screen.effects
+        value = -100
+        for i in range(int(round(self.SCREEN_DIM/4))):
+            for j in range(int(round(self.SCREEN_DIM/4))):
+                if all_effects[4*i + 1][4*j + 1] == 1:
+                    effect_affinity[i, j]+=(value)
+        return effect_affinity
+    
+    #Calculate the affinity generated by a specific unit for a location
+    def get_unit_affinity(self, obs, control_group, x, y):
+        affinity = 0
         all_units = obs.observation.feature_units
-        for i in range(len(all_effects)):
-            for j in range(len(all_effects)):
-                if all_effects[i][j] != 0:
-                    ###########SOME_FUNCTION#########(all_effects[i])
-                    distance = self.get_distance(x, y, i, j)
-                    value = 15
-                    if distance < 16 and all_effects[i][j] == 2:
-                        affinity+=value
-                    elif distance < 12 and all_effects[i][j] == 10:
-                        affinity-=(value*2)
-                    elif distance < 8 and (all_effects[i][j] == 1 or all_effects[i][j] == 11):
-                        affinity-=(value*4)
         for i in range(len(all_units)):
             ###########SOME_FUNCTION#########(control_group, all_units[i])
             distance = self.get_distance(x, y, all_units[i].x, all_units[i].y)
             if all_units[i].alliance == 4:
                 value = 5
-                if control_group == 3 or control_group == 6:
+                if control_group == 2 or control_group == 5:
                     affinity+=(value * (1 / (1 + (distance/4 - 7)**2) - 1 / (1 + math.exp(distance - 24))))
-                elif control_group == 2:
+                elif control_group == 1:
                     affinity+=(value * (1 / (1 + (distance/4 - 5)**2) - 1 / (1 + math.exp(distance - 16))))
-                elif control_group == 5:
+                elif control_group == 4:
                     affinity+=(value * (1 / (1 + (distance/4 - 3)**2) - 1 / (1 + math.exp(distance - 8))))
-            elif control_group != 5 and (all_units[i].unit_type == 82 or all_units[i].unit_type == 83):
-                value = 1
-                if control_group == 4:
-                    affinity+=(value * (1 / (1 + math.exp(2*distance - 16))))
+                elif control_group == 9:
+                    affinity+=(value * (1 / (1 + math.exp(4*distance - 24))))
+            elif all_units[i].alliance == 1:
+                value = 5
+                if control_group == 3:
+                    affinity+=(value * (10 / (distance + 1)))
+                elif control_group == 9:
+                    affinity-=(value * (1 / (1 + math.exp(4*distance - 24))))
         return affinity
     
     #Calculate the affinities for moves and return the highest affinity
     def get_optimal_move(self, obs, control_group, x, y):
-        location = [0, 0]
+        location = [48, 48]
+        affinity = -1000
         highest_affinity = -1000
+        effect_affinity = self.get_effect_affinity(obs, control_group)
         x = min(max(int(round(x)), 0), 95)
         y = min(max(int(round(y)), 0), 95)
-        for i in range(0, self.SCREEN_DIM - 1, 3):
-            for j in range(0, self.SCREEN_DIM - 1, 3):
-                distance = self.get_distance(x, y, i, j)
-                if distance <= 6 and abs(obs.observation.feature_screen.height_map[i][j] - obs.observation.feature_screen.height_map[x][y]) < 5:
-                    affinity = self.get_affinity(obs, control_group, i, j) / (1 + math.exp(distance/4 - 3))
-                    if affinity > highest_affinity:
-                        highest_affinity = affinity
-                        location = [i, j]
+        for i in range(int(round(self.SCREEN_DIM/4))):
+            for j in range(int(round(self.SCREEN_DIM/4))):
+                distance = self.get_distance(x, y, 4*i + 1, 4*j + 1)
+                if control_group == 9:
+                    affinity = self.get_unit_affinity(obs, control_group, 4*i + 1, 4*j + 1) + effect_affinity[i, j]
+                else:
+                    if abs(obs.observation.feature_screen.height_map[i][j] - obs.observation.feature_screen.height_map[x][y]) < 5:
+                        affinity = (self.get_unit_affinity(obs, control_group, 4*i + 1, 4*j + 1) + effect_affinity[i, j]) / (1 + math.exp(distance/4 - 8))
+                if affinity > highest_affinity:
+                    highest_affinity = affinity
+                    location = [4*i + 1, 4*j + 1]
         return location
-        
+    
+    #Check if templar should cast PsiStorm
+    def should_cast_storm(self, obs, x, y):
+        unit_count = 0
+        x_min = max(x - 6, 0)
+        x_max = min(x + 6, 95)
+        y_min = max(y - 6, 0)
+        y_max = min(y + 6, 95)
+        all_units = obs.observation.feature_units
+        for i in range(len(all_units)):
+            if all_units[i].x > x_min and all_units[i].x < x_max and all_units[i].y > y_min and all_units[i].y < y_max:
+                if all_units[i].alliance == 4:
+                    unit_count+=1
+                elif all_units[i].alliance == 1:
+                    unit_count-=1
+        return (unit_count >= self.STORM_THRESHOLD)
+    
+    #Return coordinates of power
+    def get_power(self, obs):
+        power_coordinates = []
+        power = obs.observation.feature_screen.power
+        for i in range(self.SCREEN_DIM):
+            for j in range(int(self.SCREEN_DIM * 3/4)):
+                if power[i][j] == 1:
+                    power_coordinates.append((i, j))
+        return power_coordinates
     
     
     
-        
+    
     #Returns an action to the game at the end of every step
     def step(self, obs):
         super(ProtossAgent, self).step(obs)
         
+        #Get results
+        if obs.last():
+            self.iterations+=1
+            if obs.reward == 1:
+                self.wins+=1
+            print(self.wins)
+            print(self.iterations)
+            print(self.wins/self.iterations)
+            
+            
         #Use K-Means clustering to find center of masses of the various resource clusters
         if obs.first():
+            self.step_number = 0
+            self.action_number = 1
+            self.sub_action_number = 0
+            self.number_of_bases = 1
+            self.camera_location = 0
+            self.time_until_nexus = 2000
+            self.time_until_warpgates = 1750
+            self.time_until_blink = 1850
+            self.time_until_storm = 1200
+            self.time_supply_needed = 250
+            self.time_shield_up = 300
+            self.time_chronoboost_effective = 0
+            self.supply_needed = True
+            self.build_forward_pylon = True
+            self.stop_worker_production = False
+            self.minerals_filled = False
+            self.possible_enemy_base_destroyed = False
+            self.main_enemy_base_destroyed = False
+            self.army_selected = False
+            self.researching_warpgates = False
+            self.researching_blink = False
+            self.researching_storm = False
+            self.attacking = False
+            self.written = False
+            
+            self.resource_locations = []
+            self.main_base_camera = [0, 0]
+            self.natural_base_camera = [0, 0]
+            self.army_rally_camera = [0, 0]
+            self.main_enemy_base = [0, 0]
+            self.possible_enemy_base = [0, 0]
+            self.nexus_location = [0, 0]
+            self.build_lean = [0, 0]
+            self.first_pylon_location = [0, 0]
+            
+            self.geysers = []
+            
+            self.power = []
+            
+            self.scout_information = []
+            
+            self.zerglings = 0
+            self.roaches = 0
+            self.drones = 0
+            self.warrens = 0
+            self.extractors = 0
+            
+            self.csv_row = []
+            
+            
             resources_y, resources_x = (obs.observation.feature_minimap.player_relative == features.PlayerRelative.NEUTRAL).nonzero()
             number_of_clusters = int(math.ceil(len(resources_y) / 16))
             resources = []
@@ -200,7 +309,7 @@ class ProtossAgent(base_agent.BaseAgent):
                     else:
                         self.resource_locations[i] = (int(round(self.resource_locations[i][0])) - 3, int(round(self.resource_locations[i][1])) - 3)
                     
-            #ONLY FOR SIMPLE64 MAP        
+            #ONLY FOR SIMPLE64 MAP
             player_y, player_x = (obs.observation.feature_minimap.player_relative == features.PlayerRelative.SELF).nonzero()
             xmean = player_x.mean()
             ymean = player_y.mean()
@@ -220,7 +329,7 @@ class ProtossAgent(base_agent.BaseAgent):
                     else:
                         self.natural_base_camera[0] = self.resource_locations[i][0] - self.build_lean[0]
                         self.natural_base_camera[1] = self.resource_locations[i][1] + self.build_lean[1]
-                        self.army_rally_camera[0] = self.resource_locations[i][0] + 4*self.build_lean[0]
+                        self.army_rally_camera[0] = self.resource_locations[i][0] + 2*self.build_lean[0]
                         self.army_rally_camera[1] = self.resource_locations[i][1] - 4*self.build_lean[1]
                 else:
                     if abs(self.resource_locations[i][0] - xmean) > 10:
@@ -233,9 +342,7 @@ class ProtossAgent(base_agent.BaseAgent):
         
         
         nexi = self.get_units_by_type(obs, units.Protoss.Nexus)
-        if len(nexi) == 1:
-            nexus = nexi[0]
-            
+        
         probes = self.get_units_by_type(obs, units.Protoss.Probe)
         minerals = self.get_units_by_type(obs, units.Neutral.MineralField)
         assimilators = self.get_units_by_type(obs, units.Protoss.Assimilator)
@@ -257,74 +364,65 @@ class ProtossAgent(base_agent.BaseAgent):
         immortals = self.get_units_by_type(obs, units.Protoss.Immortal)
         templars = self.get_units_by_type(obs, units.Protoss.HighTemplar)
         
+        scrap_metals = [zealots, stalkers, sentries, observers, immortals, templars]
         
         
         
+        
+        
+        
+        self.step_number+=1
         self.sub_action_number+=1
+        self.time_shield_up+=1
+        self.time_chronoboost_effective+=1
         if self.number_of_bases == 2 and self.time_until_nexus > 0:
             self.time_until_nexus-=1
-        if self.idle_needed == False:
-            self.time_idle_needed = 0
-        else:
-            self.time_idle_needed+=1
+        if self.researching_warpgates and self.time_until_warpgates > 0:
+            self.time_until_warpgates-=1
+        if self.researching_blink and self.time_until_blink > 0:
+            self.time_until_blink-=1
+        if self.researching_storm and self.time_until_storm > 0:
+            self.time_until_storm-=1
         if self.supply_needed == False:
             self.time_supply_needed = 0
         else:
             self.time_supply_needed+=1
-           
-            
-            
-        """if self.sub_action_number < 10:
-            return actions.FUNCTIONS.move_camera((self.main_base_camera[0] - 8*self.build_lean[0], self.main_base_camera[1]))
-        
-        self.res = obs.observation.feature_screen.height_map
-        
-        csvfile = "height_map_sample.csv"
-        
-        #Assuming res is a flat list
-        with open(csvfile, "w") as output:
-            writer = csv.writer(output, lineterminator='\n')
-            for val in self.res:
-                writer.writerow([val])    
-        
-        #Assuming res is a list of lists
-        with open(csvfile, "w") as output:
-            writer = csv.writer(output, lineterminator='\n')
-            writer.writerows(self.res)
-            print("nice")
-        
-        exit()"""
         
         
-        print(str(self.action_number) + " " + str(self.sub_action_number))
         
+        #print(self.csv_row)
+        #print(str(self.action_number) + " " + str(self.sub_action_number))
         
         #Center camera on and select the main base, rally probes to correct resources, train probes
         if self.action_number == 1:
             
+            if self.sub_action_number == 1 and obs.observation.control_groups[7][1] == 0 and self.step_number < 500:
+                self.sub_action_number-=1
+                if self.unit_type_is_selected(obs, units.Protoss.Probe):
+                    return actions.FUNCTIONS.select_control_group("set", 7)
+                elif len(probes) > 0:
+                    if probes[0].x >= 0 and probes[0].x < self.SCREEN_DIM and probes[0].y >= 0 and probes[0].y < self.SCREEN_DIM:
+                        return actions.FUNCTIONS.select_point("select", (probes[0].x, probes[0].y))
+            
             if self.sub_action_number == 2:
+                self.camera_location = 0
                 return actions.FUNCTIONS.move_camera(self.main_base_camera)
             
             if self.sub_action_number == 4:
                 if len(self.geysers) == 0:
                     self.geysers = self.get_units_by_type(obs, units.Neutral.VespeneGeyser)
                 if self.number_of_bases == 1 and len(nexi) > 0:
-                    self.nexus_location[0] = nexus.x
-                    self.nexus_location[1] = nexus.y
+                    self.nexus_location[0] = nexi[0].x
+                    self.nexus_location[1] = nexi[0].y
                 if len(nexi) > 0:
                     if self.nexus_location[0] >= 0 and self.nexus_location[0] <= self.SCREEN_DIM - 1 and self.nexus_location[1] >= 0 and self.nexus_location[1] <= self.SCREEN_DIM - 1:
                         return actions.FUNCTIONS.select_point("select", self.nexus_location)
             
             if self.sub_action_number == 5:
                 if self.unit_type_is_selected(obs, units.Protoss.Nexus):
-                    if self.can_do(obs, actions.FUNCTIONS.select_idle_worker.id):
-                        self.idle_needed = False
-                    else:
-                        self.idle_needed = True
-                        self.minerals_filled == False
-                        if self.time_idle_needed > 250:
-                            return actions.FUNCTIONS.Rally_Workers_screen("now", (48, 48))
-                    if nexus.assigned_harvesters < nexus.ideal_harvesters:
+                    if obs.observation.control_groups[9][1] == 0:
+                        return actions.FUNCTIONS.select_control_group("append", 9)
+                    if nexi[0].assigned_harvesters < nexi[0].ideal_harvesters and len(minerals) > 0:
                         return actions.FUNCTIONS.Rally_Workers_screen("now", (minerals[0].x, minerals[0].y))
                     for i in range(len(assimilators)):
                         if assimilators[i].assigned_harvesters < assimilators[i].ideal_harvesters and assimilators[i].ideal_harvesters != 0:
@@ -334,33 +432,50 @@ class ProtossAgent(base_agent.BaseAgent):
                             return actions.FUNCTIONS.Cancel_Last_quick("now")
                             
             if self.sub_action_number == 6:
-                if self.number_of_bases == 1:
+                if obs.observation.control_groups[7][1] == 1 and self.step_number > 2400:
+                    self.sub_action_number = 0
+                    self.action_number = 15
+                elif self.number_of_bases == 1:
                     self.sub_action_number = 0
                     self.action_number = 2
                 if self.unit_type_is_selected(obs, units.Protoss.Nexus):
-                    if len(obs.observation.build_queue) <= 1:
-                        if self.can_do(obs, actions.FUNCTIONS.Train_Probe_quick.id):
-                            return actions.FUNCTIONS.Train_Probe_quick("now")
-            
+                    if self.minerals_filled == False:
+                        if len(obs.observation.build_queue) <= 1:
+                            if self.can_do(obs, actions.FUNCTIONS.Train_Probe_quick.id):
+                                return actions.FUNCTIONS.Train_Probe_quick("now")
+                    
             if self.sub_action_number == 8:
-                return actions.FUNCTIONS.move_camera(self.natural_base_camera)
+                if self.number_of_bases > 1:
+                    self.camera_location = 1
+                    return actions.FUNCTIONS.move_camera(self.natural_base_camera)
             
             if self.sub_action_number == 10:
                 self.sub_action_number = 0
-                self.action_number = 2
+                if obs.observation.control_groups[7][1] == 1 and self.step_number > 2400:
+                    self.action_number = 15
+                else:
+                    self.action_number = 2
                 if self.unit_type_is_selected(obs, units.Protoss.Nexus):
                     if len(minerals) > 0:
                         return actions.FUNCTIONS.Rally_Workers_screen("now", (minerals[0].x, minerals[0].y))
                 
                 
-        #Select idle worker and center camera on main base, build assimilators and pylons at main base, build pylons by natural expansion if necessary
+        #Select CG8 (or bind worker to CG8) and center camera on main base, build assimilators and pylons at main base, build pylons by natural expansion if necessary
         if self.action_number == 2:
-            
+                    
             if self.sub_action_number == 1:
-                if self.can_do(obs, actions.FUNCTIONS.select_idle_worker.id):
-                    return actions.FUNCTIONS.select_idle_worker("select")
+                if obs.observation.control_groups[8][1] == 0:
+                    self.sub_action_number-=1
+                    if self.unit_type_is_selected(obs, units.Protoss.Probe):
+                        return actions.FUNCTIONS.select_control_group("set", 8)
+                    elif len(probes) > 0:
+                        if probes[0].x >= 0 and probes[0].x < self.SCREEN_DIM and probes[0].y >= 0 and probes[0].y < self.SCREEN_DIM:
+                            return actions.FUNCTIONS.select_point("select", (probes[0].x, probes[0].y))
+                else:
+                    return actions.FUNCTIONS.select_control_group("recall", 8)
             
             if self.sub_action_number == 3:
+                self.camera_location = 0
                 return actions.FUNCTIONS.move_camera(self.main_base_camera)
                                     
             if self.sub_action_number == 5:
@@ -369,7 +484,7 @@ class ProtossAgent(base_agent.BaseAgent):
                         if self.can_do(obs, actions.FUNCTIONS.Build_Assimilator_screen.id):
                             return actions.FUNCTIONS.Build_Assimilator_screen("queued", (self.geysers[len(assimilators)].x, self.geysers[len(assimilators)].y))
             
-            if self.sub_action_number == 6:
+            if self.sub_action_number == 7:
                 if self.unit_type_is_selected(obs, units.Protoss.Probe):
                     if obs.observation.player.food_cap - obs.observation.player.food_used < 20 and obs.observation.player.food_cap != 200:
                         self.supply_needed = True
@@ -379,48 +494,53 @@ class ProtossAgent(base_agent.BaseAgent):
                                 if len(pylons) == 0:
                                     unit_type = obs.observation["feature_screen"][features.SCREEN_FEATURES.unit_type.index]
                                     mineral_y, mineral_x = (unit_type == units.Neutral.MineralField).nonzero()
-                                    x = 2*nexus.x - int(round(mineral_x.mean())) - 5*self.build_lean[0]
-                                    y = 2*nexus.y - int(round(mineral_y.mean())) - 5*self.build_lean[1]
+                                    x = 2*nexi[0].x - int(round(mineral_x.mean())) - 5*self.build_lean[0]
+                                    y = 2*nexi[0].y - int(round(mineral_y.mean())) - 5*self.build_lean[1]
                                     self.first_pylon_location[0] = x
                                     self.first_pylon_location[1] = y
                                     return actions.FUNCTIONS.Build_Pylon_screen("queued", self.first_pylon_location)
-                                elif len(pylons) == 1:
-                                    return actions.FUNCTIONS.Build_Pylon_screen("queued", (self.first_pylon_location[0] + self.build_lean[0]*35, self.first_pylon_location[1]))
+                                elif len(pylons) == 1 and len(gateways) > 0:
+                                    return actions.FUNCTIONS.Build_Pylon_screen("queued", (self.first_pylon_location[0] + self.build_lean[0]*40, self.first_pylon_location[1] - self.build_lean[1]*8))
                                 elif len(pylons) == 2:
-                                    return actions.FUNCTIONS.Build_Pylon_screen("queued", (self.first_pylon_location[0], self.first_pylon_location[1] + self.build_lean[1]*35))
-                                else:
-                                    self.build_pylon = True
-                                    return actions.FUNCTIONS.move_camera(self.natural_base_camera)
+                                    return actions.FUNCTIONS.Build_Pylon_screen("queued", (self.first_pylon_location[0] - self.build_lean[0]*8, self.first_pylon_location[1] + self.build_lean[1]*40))
+                                elif len(pylons) == 3:
+                                    if self.build_forward_pylon:
+                                        self.camera_location = 2
+                                        return actions.FUNCTIONS.move_camera(self.army_rally_camera)
+                                    else:
+                                        self.camera_location = 1
+                                        return actions.FUNCTIONS.move_camera(self.natural_base_camera)
                                     
-            if self.sub_action_number == 8:
-                if (len(obs.observation.last_actions) > 0 and obs.observation.last_actions[0] == 70) or self.build_pylon == False:
-                    self.build_pylon = False
-                    self.sub_action_number = 0
-                    if self.time_until_nexus == 0:
-                        self.action_number = 3
-                    elif obs.observation.player.minerals > 550 and self.number_of_bases == 1:
-                        self.action_number = 10
-                    else:
-                        self.action_number = 4
+            if self.sub_action_number == 9:
+                self.sub_action_number = 0
+                if self.time_until_nexus == 0:
+                    self.action_number = 3
+                elif obs.observation.player.minerals > 550 and self.number_of_bases == 1:
+                    self.action_number = 11
                 else:
-                    self.sub_action_number-=1
-                if self.build_pylon:
-                    if random.randint(0, 1) == 0:
-                        if self.build_lean[0] == -1:
-                            return actions.FUNCTIONS.Build_Pylon_screen("queued", (random.randint(0, 32), random.randint(0, 55)))
+                    self.action_number = 4
+                if self.can_do(obs, actions.FUNCTIONS.Build_Pylon_screen.id):
+                    if self.build_forward_pylon and self.camera_location == 2:
+                        self.build_forward_pylon = False
+                        return actions.FUNCTIONS.Build_Pylon_screen("queued", (48 - 8*self.build_lean[0], 48 + 8*self.build_lean[1]))
+                    if self.camera_location == 1:    
+                        if random.randint(0, 1) == 0:
+                            if self.build_lean[0] == -1:
+                                return actions.FUNCTIONS.Build_Pylon_screen("queued", (random.randint(0, 32), random.randint(0, 71)))
+                            else:
+                                return actions.FUNCTIONS.Build_Pylon_screen("queued", (random.randint(63, self.SCREEN_DIM - 1), random.randint(0, 71)))
                         else:
-                            return actions.FUNCTIONS.Build_Pylon_screen("queued", (random.randint(63, self.SCREEN_DIM - 1), random.randint(16, 71)))
-                    else:
-                        if self.build_lean[1] == -1:
-                            return actions.FUNCTIONS.Build_Pylon_screen("queued", (random.randint(16, self.SCREEN_DIM - 1), random.randint(63, 71)))
-                        else:
-                            return actions.FUNCTIONS.Build_Pylon_screen("queued", (random.randint(0, 79), random.randint(0, 32)))
+                            if self.build_lean[1] == -1:
+                                return actions.FUNCTIONS.Build_Pylon_screen("queued", (random.randint(0, self.SCREEN_DIM - 1), random.randint(63, 71)))
+                            else:
+                                return actions.FUNCTIONS.Build_Pylon_screen("queued", (random.randint(0, self.SCREEN_DIM - 1), random.randint(0, 32)))
                 
                 
         #Center camera on natural expansion, rally probes to correct resources, train probes
         if self.action_number == 3:
             
             if self.sub_action_number == 2:
+                self.camera_location = 1
                 return actions.FUNCTIONS.move_camera(self.natural_base_camera)
             
             if self.sub_action_number == 4:
@@ -428,7 +548,9 @@ class ProtossAgent(base_agent.BaseAgent):
                 
             if self.sub_action_number == 5:
                 if self.unit_type_is_selected(obs, units.Protoss.Nexus):
-                    if nexus.assigned_harvesters < nexus.ideal_harvesters:
+                    if obs.observation.control_groups[9][1] == 1:
+                        return actions.FUNCTIONS.select_control_group("append", 9)
+                    if nexi[0].assigned_harvesters < nexi[0].ideal_harvesters:
                         return actions.FUNCTIONS.Rally_Workers_screen("now", (minerals[0].x, minerals[0].y))
                     else:
                         self.minerals_filled = True
@@ -443,194 +565,285 @@ class ProtossAgent(base_agent.BaseAgent):
                 self.sub_action_number = 0
                 self.action_number = 4
                 if self.unit_type_is_selected(obs, units.Protoss.Nexus):
-                    if len(obs.observation.build_queue) <= 1:
-                        if self.can_do(obs, actions.FUNCTIONS.Train_Probe_quick.id):
-                            return actions.FUNCTIONS.Train_Probe_quick("now")
+                    if self.stop_worker_production == False:
+                        if len(obs.observation.build_queue) <= 1:
+                            if self.can_do(obs, actions.FUNCTIONS.Train_Probe_quick.id):
+                                return actions.FUNCTIONS.Train_Probe_quick("now")
                             
         
-        #Center camera on main base and construct combat buildings
+        #Select all nexi and chronoboost
         if self.action_number == 4:
             
             if self.sub_action_number == 1:
-                if self.can_do(obs, actions.FUNCTIONS.select_idle_worker.id):
-                    return actions.FUNCTIONS.select_idle_worker("select")
+                return actions.FUNCTIONS.select_control_group("recall", 9)
             
             if self.sub_action_number == 3:
+                self.camera_location = 0
                 return actions.FUNCTIONS.move_camera(self.main_base_camera)
             
             if self.sub_action_number == 5:
                 self.sub_action_number = 0
                 self.action_number = 5
-                if self.unit_type_is_selected(obs, units.Protoss.Probe):    
-                    if len(gateways) < 1:
-                        if self.can_do(obs, actions.FUNCTIONS.Build_Gateway_screen.id):
-                            return actions.FUNCTIONS.Build_Gateway_screen("queued", self.random_location())
-                    elif len(cores) < 1:
-                        if self.can_do(obs, actions.FUNCTIONS.Build_CyberneticsCore_screen.id):
-                            return actions.FUNCTIONS.Build_CyberneticsCore_screen("queued", self.random_location())
-                    elif len(forges) < 1:
-                        if self.can_do(obs, actions.FUNCTIONS.Build_Forge_screen.id):
-                            return actions.FUNCTIONS.Build_Forge_screen("queued", self.random_location())
-                    elif self.number_of_bases > 1:
-                        if len(gateways) < 2:
-                            if self.can_do(obs, actions.FUNCTIONS.Build_Gateway_screen.id):
-                                return actions.FUNCTIONS.Build_Gateway_screen("queued", self.random_location())
-                        elif len(facilities) < 1:
-                            if self.can_do(obs, actions.FUNCTIONS.Build_RoboticsFacility_screen.id):
-                                return actions.FUNCTIONS.Build_RoboticsFacility_screen("queued", self.random_location())
-                        elif len(forges) < 2:
-                            if self.can_do(obs, actions.FUNCTIONS.Build_Forge_screen.id):
-                                return actions.FUNCTIONS.Build_Forge_screen("queued", self.random_location())
-                        elif len(councils) < 1:
-                            if self.can_do(obs, actions.FUNCTIONS.Build_TwilightCouncil_screen.id):
-                                return actions.FUNCTIONS.Build_TwilightCouncil_screen("queued", self.random_location())
-                        elif len(gateways) < 3:
-                            if self.can_do(obs, actions.FUNCTIONS.Build_Gateway_screen.id):
-                                return actions.FUNCTIONS.Build_Gateway_screen("queued", self.random_location())
-                        elif len(archives) < 1:
-                            if self.can_do(obs, actions.FUNCTIONS.Build_TemplarArchive_screen.id):
-                                return actions.FUNCTIONS.Build_TemplarArchive_screen("queued", self.random_location())
-                        elif len(facilities) < 2:
-                            if self.can_do(obs, actions.FUNCTIONS.Build_RoboticsFacility_screen.id):
-                                return actions.FUNCTIONS.Build_RoboticsFacility_screen("queued", self.random_location())
-                        elif len(gateways) < 4:
-                            if self.can_do(obs, actions.FUNCTIONS.Build_Gateway_screen.id):
-                                return actions.FUNCTIONS.Build_Gateway_screen("queued", self.random_location())
+                if self.unit_type_is_selected(obs, units.Protoss.Nexus):
+                    if self.can_do(obs, actions.FUNCTIONS.Effect_ChronoBoostEnergyCost_screen.id):
+                        if self.time_chronoboost_effective > 450:
+                            self.time_chronoboost_effective = 0
+                            if len(cores) > 0 and self.time_until_warpgates > 0:
+                                return actions.FUNCTIONS.Effect_ChronoBoostEnergyCost_screen("now", (cores[0].x, cores[0].y))
+                            elif len(councils) > 0 and self.time_until_blink > 0:
+                                return actions.FUNCTIONS.Effect_ChronoBoostEnergyCost_screen("now", (councils[0].x, councils[0].y))
+                            elif len(archives) > 0 and self.time_until_storm > 0:
+                                return actions.FUNCTIONS.Effect_ChronoBoostEnergyCost_screen("now", (archives[0].x, archives[0].y))
+                            elif len(forges) > 0 and self.step_number < 10000:
+                                return actions.FUNCTIONS.Effect_ChronoBoostEnergyCost_screen("now", (forges[0].x, forges[0].y))
+                            elif len(facilities) > 0:
+                                return actions.FUNCTIONS.Effect_ChronoBoostEnergyCost_screen("now", (facilities[0].x, facilities[0].y))
                         
                         
-        #Train units from gateway/warpgate
+        #Center camera on main base and construct combat buildings
         if self.action_number == 5:
             
-            if self.sub_action_number == 2:
+            if self.sub_action_number == 1:
+                return actions.FUNCTIONS.select_control_group("recall", 8)
+            
+            if self.sub_action_number == 3:
+                self.camera_location = 0
                 return actions.FUNCTIONS.move_camera(self.main_base_camera)
             
-            if self.sub_action_number == 4:
-                if len(gateways) > 0:
-                    gateway = random.choice(gateways)
-                    if gateway.x >= 0 and gateway.x <= self.SCREEN_DIM - 1 and gateway.y >= 0 and gateway.y <= self.SCREEN_DIM - 1:
-                        return actions.FUNCTIONS.select_point("select", (gateway.x, gateway.y))
+            if self.sub_action_number == 5:
+                self.sub_action_number = 0
+                if len(cores) > 0 and self.researching_warpgates == False:
+                    self.action_number = 12
+                elif len(councils) > 0 and self.researching_blink == False:
+                    self.action_number = 13
+                elif len(archives) > 0 and self.researching_storm == False:
+                    self.action_number = 14
+                else:
+                    self.action_number = 6
+                self.power = self.get_power(obs)
+                if len(self.power) > 0 and obs.observation.player.idle_worker_count > 0:
+                    if self.unit_type_is_selected(obs, units.Protoss.Probe):
+                        if len(gateways) + len(warpgates) < 1:
+                            if self.can_do(obs, actions.FUNCTIONS.Build_Gateway_screen.id):
+                                return actions.FUNCTIONS.Build_Gateway_screen("queued", random.choice(self.power))
+                        elif len(cores) < 1:
+                            if self.can_do(obs, actions.FUNCTIONS.Build_CyberneticsCore_screen.id):
+                                return actions.FUNCTIONS.Build_CyberneticsCore_screen("queued", random.choice(self.power))
+                        elif len(gateways) + len(warpgates) < 2:
+                            if self.can_do(obs, actions.FUNCTIONS.Build_Gateway_screen.id):
+                                return actions.FUNCTIONS.Build_Gateway_screen("queued", random.choice(self.power))
+                        elif self.number_of_bases > 1:
+                            if len(forges) < 1:
+                                if self.can_do(obs, actions.FUNCTIONS.Build_Forge_screen.id):
+                                    return actions.FUNCTIONS.Build_Forge_screen("queued", random.choice(self.power))
+                            elif len(facilities) < 1:
+                                if self.can_do(obs, actions.FUNCTIONS.Build_RoboticsFacility_screen.id):
+                                    return actions.FUNCTIONS.Build_RoboticsFacility_screen("queued", random.choice(self.power))
+                            elif len(councils) < 1:
+                                if self.can_do(obs, actions.FUNCTIONS.Build_TwilightCouncil_screen.id):
+                                    return actions.FUNCTIONS.Build_TwilightCouncil_screen("queued", random.choice(self.power))
+                            elif len(gateways) + len(warpgates) < 3:
+                                if self.can_do(obs, actions.FUNCTIONS.Build_Gateway_screen.id):
+                                    return actions.FUNCTIONS.Build_Gateway_screen("queued", random.choice(self.power))
+                            elif len(archives) < 1:
+                                if self.can_do(obs, actions.FUNCTIONS.Build_TemplarArchive_screen.id):
+                                    return actions.FUNCTIONS.Build_TemplarArchive_screen("queued", random.choice(self.power))
+                            elif len(facilities) < 2:
+                                if self.can_do(obs, actions.FUNCTIONS.Build_RoboticsFacility_screen.id):
+                                    return actions.FUNCTIONS.Build_RoboticsFacility_screen("queued", random.choice(self.power))
+                            elif len(forges) < 2:
+                                if self.can_do(obs, actions.FUNCTIONS.Build_Forge_screen.id):
+                                    return actions.FUNCTIONS.Build_Forge_screen("queued", random.choice(self.power))
+                            elif len(gateways) + len(warpgates) < 4:
+                                if self.can_do(obs, actions.FUNCTIONS.Build_Gateway_screen.id):
+                                    return actions.FUNCTIONS.Build_Gateway_screen("queued", random.choice(self.power))
+                            elif len(facilities) < 3:
+                                if self.can_do(obs, actions.FUNCTIONS.Build_RoboticsFacility_screen.id):
+                                    return actions.FUNCTIONS.Build_RoboticsFacility_screen("queued", random.choice(self.power))
+                            
+        
+        #Research upgrades from forge
+        if self.action_number == 6:
             
-            if self.sub_action_number == 6:
-                return actions.FUNCTIONS.move_camera(self.army_rally_camera)
+            if self.sub_action_number == 2:
+                self.camera_location = 0
+                return actions.FUNCTIONS.move_camera(self.main_base_camera)
                 
-            if self.sub_action_number == 8:
-                if self.unit_type_is_selected(obs, units.Protoss.Gateway):
-                    return actions.FUNCTIONS.Rally_Units_screen("now", (48, 48))
+            if self.sub_action_number == 4:
+                if len(forges) > 0:
+                    forge = random.choice(forges)
+                    if forge.x >= 0 and forge.x < self.SCREEN_DIM and forge.y >= 0 and forge.y < self.SCREEN_DIM:
+                        return actions.FUNCTIONS.select_point("select", (forge.x, forge.y))
+                    
+            if self.sub_action_number == 5:
+                self.sub_action_number = 0
+                self.action_number = 7
+                if self.unit_type_is_selected(obs, units.Protoss.Forge):
+                    if len(obs.observation.build_queue) == 0:
+                        if self.can_do(obs, actions.FUNCTIONS.Research_ProtossGroundWeapons_quick.id):
+                            return actions.FUNCTIONS.Research_ProtossGroundWeapons_quick("now")
+                        elif self.can_do(obs, actions.FUNCTIONS.Research_ProtossGroundArmor_quick.id):
+                            return actions.FUNCTIONS.Research_ProtossGroundArmor_quick("now")
+                        elif self.can_do(obs, actions.FUNCTIONS.Research_ProtossShields_quick.id):
+                            return actions.FUNCTIONS.Research_ProtossShields_quick("now")
+                        
+                    
+        #Train units from gateway/warpgate
+        if self.action_number == 7:
             
-            if self.sub_action_number == 9:
-                if self.unit_type_is_selected(obs, units.Protoss.Gateway):
-                    if len(obs.observation.build_queue) < 2:
-                        if len(stalkers) / (obs.observation.player.army_count + 1) < self.ARMY_RATIO["Stalker"] / self.ARMY_RATIO["Total"]:
-                            if self.can_do(obs, actions.FUNCTIONS.Train_Stalker_quick.id):
-                                return actions.FUNCTIONS.Train_Stalker_quick("now")
-                        if len(sentries) / (obs.observation.player.army_count + 1) < self.ARMY_RATIO["Sentry"] / self.ARMY_RATIO["Total"]:
-                            if self.can_do(obs, actions.FUNCTIONS.Train_Sentry_quick.id):
-                                return actions.FUNCTIONS.Train_Sentry_quick("now")
-                        if len(templars) / (obs.observation.player.army_count + 1) < self.ARMY_RATIO["Templar"] / self.ARMY_RATIO["Total"]:
-                            if self.can_do(obs, actions.FUNCTIONS.Train_HighTemplar_quick.id):
-                                return actions.FUNCTIONS.Train_HighTemplar_quick("now")
-                        if self.can_do(obs, actions.FUNCTIONS.Train_Zealot_quick.id):
-                            return actions.FUNCTIONS.Train_Zealot_quick("now")
+            if len(gateways) > 0 or self.sub_action_number > 6:
+                
+                if self.sub_action_number == 2:
+                    self.camera_location = 0
+                    return actions.FUNCTIONS.move_camera(self.main_base_camera)
+                
+                if self.sub_action_number == 4:
+                    gateway = random.choice(gateways)
+                    if gateway.x >= 0 and gateway.x < self.SCREEN_DIM and gateway.y >= 0 and gateway.y < self.SCREEN_DIM:
+                        return actions.FUNCTIONS.select_point("select", (gateway.x, gateway.y))
+                
+                if self.sub_action_number == 6:
+                    if self.unit_type_is_selected(obs, units.Protoss.Gateway):
+                        if self.time_until_warpgates == 0:
+                            if self.can_do(obs, actions.FUNCTIONS.Morph_WarpGate_quick.id):
+                                self.sub_action_number = 0
+                                return actions.FUNCTIONS.Morph_WarpGate_quick("now")
+                            elif self.can_do(obs, actions.FUNCTIONS.Cancel_Last_quick.id):
+                                self.sub_action_number-=1
+                                return actions.FUNCTIONS.Cancel_Last_quick("now")
+                        else:
+                            self.camera_location = 2
+                            return actions.FUNCTIONS.move_camera(self.army_rally_camera)
+                
+                if self.sub_action_number == 8:
+                    if self.unit_type_is_selected(obs, units.Protoss.Gateway):
+                        return actions.FUNCTIONS.Rally_Units_screen("now", (48, 48 - 16*self.build_lean[1]))
+                
+                if self.sub_action_number == 9:
+                    self.sub_action_number = 0
+                    self.action_number = 8
+                    if self.unit_type_is_selected(obs, units.Protoss.Gateway):
+                        if len(obs.observation.build_queue) < 2:
+                            if len(stalkers) / (obs.observation.player.army_count + 1) < self.ARMY_RATIO["Stalker"] / self.ARMY_RATIO["Total"]:
+                                if self.can_do(obs, actions.FUNCTIONS.Train_Stalker_quick.id):
+                                    return actions.FUNCTIONS.Train_Stalker_quick("now")
+                            if len(sentries) / (obs.observation.player.army_count + 1) < self.ARMY_RATIO["Sentry"] / self.ARMY_RATIO["Total"]:
+                                if self.can_do(obs, actions.FUNCTIONS.Train_Sentry_quick.id):
+                                    return actions.FUNCTIONS.Train_Sentry_quick("now")
+                            if len(templars) / (obs.observation.player.army_count + 1) < self.ARMY_RATIO["Templar"] / self.ARMY_RATIO["Total"]:
+                                if self.can_do(obs, actions.FUNCTIONS.Train_HighTemplar_quick.id):
+                                    return actions.FUNCTIONS.Train_HighTemplar_quick("now")
+                            if self.can_do(obs, actions.FUNCTIONS.Train_Zealot_quick.id):
+                                return actions.FUNCTIONS.Train_Zealot_quick("now")
+                        
+            elif len(warpgates) > 0 or self.sub_action_number > 3:
+                if self.sub_action_number == 1:
+                    if self.can_do(obs, actions.FUNCTIONS.select_warp_gates.id):
+                        return actions.FUNCTIONS.select_warp_gates("select")
+                
+                if self.sub_action_number == 3:
+                    self.camera_location = 2
+                    return actions.FUNCTIONS.move_camera(self.army_rally_camera)
+                
+                if self.sub_action_number == 5:
+                    self.sub_action_number = 0
+                    self.action_number = 8
+                    if self.unit_type_is_selected(obs, units.Protoss.WarpGate):
+                        if len(stalkers) / (len(stalkers) + obs.observation.control_groups[2][1] + obs.observation.control_groups[5][1] + 1) < self.ARMY_RATIO["Stalker"] / self.ARMY_RATIO["Total"]:
+                            if self.can_do(obs, actions.FUNCTIONS.TrainWarp_Stalker_screen.id):
+                                return actions.FUNCTIONS.TrainWarp_Stalker_screen("now", random.choice(self.power))
+                        if len(sentries) / (len(sentries) + obs.observation.control_groups[1][1] + obs.observation.control_groups[5][1] + 1) < self.ARMY_RATIO["Sentry"] / self.ARMY_RATIO["Total"]:
+                            if self.can_do(obs, actions.FUNCTIONS.TrainWarp_Sentry_screen.id):
+                                return actions.FUNCTIONS.TrainWarp_Sentry_screen("now", random.choice(self.power))
+                        if len(templars) / (len(templars) + obs.observation.control_groups[1][1] + obs.observation.control_groups[2][1] + 1) < self.ARMY_RATIO["Templar"] / self.ARMY_RATIO["Total"]:
+                            if self.can_do(obs, actions.FUNCTIONS.TrainWarp_HighTemplar_screen.id):
+                                return actions.FUNCTIONS.TrainWarp_HighTemplar_screen("now", random.choice(self.power))
+                        if obs.observation.player.minerals > 3*obs.observation.player.vespene:
+                            if self.can_do(obs, actions.FUNCTIONS.TrainWarp_Zealot_screen.id):
+                                return actions.FUNCTIONS.TrainWarp_Zealot_screen("now", random.choice(self.power))
+                        
+            else:
+                self.sub_action_number = 0
+                self.action_number = 8
+                
+                        
+        #Train units from robotics facility
+        if self.action_number == 8:
             
-            if self.sub_action_number == 11:
+            if self.sub_action_number == 2:
+                self.camera_location = 0
                 return actions.FUNCTIONS.move_camera(self.main_base_camera)
                             
-            if self.sub_action_number == 13:
+            if self.sub_action_number == 4:
                 if len(facilities) > 0:
                     facility = random.choice(facilities)
                     if facility.x >= 0 and facility.x <= self.SCREEN_DIM - 1 and facility.y >= 0 and facility.y <= self.SCREEN_DIM - 1:
                         return actions.FUNCTIONS.select_point("select", (facility.x, facility.y))
             
-            if self.sub_action_number == 15:
-                return actions.FUNCTIONS.move_camera(self.army_rally_camera)
-            
-            if self.sub_action_number == 17:
+            if self.sub_action_number == 6:
                 if self.unit_type_is_selected(obs, units.Protoss.RoboticsFacility):
-                    return actions.FUNCTIONS.Rally_Units_screen("now", (48, 48))
+                    self.camera_location = 2
+                    return actions.FUNCTIONS.move_camera(self.army_rally_camera)
+            
+            if self.sub_action_number == 8:
+                if self.unit_type_is_selected(obs, units.Protoss.RoboticsFacility):
+                    return actions.FUNCTIONS.Rally_Units_screen("now", (48, 48 - 16*self.build_lean[1]))
                 
-            if self.sub_action_number == 18:
+            if self.sub_action_number == 9:
                 self.sub_action_number = 0
-                self.action_number = 6
+                if obs.observation.player.army_count > 0:
+                    self.action_number = 9
+                else:
+                    self.action_number = 1
                 if self.unit_type_is_selected(obs, units.Protoss.RoboticsFacility):
                     if len(obs.observation.build_queue) < 2:
-                        if len(observers) / (obs.observation.player.army_count + 1) < self.ARMY_RATIO["Observer"] / self.ARMY_RATIO["Total"]:
+                        #if len(observers) / (obs.observation.player.army_count + 1) < self.ARMY_RATIO["Observer"] / self.ARMY_RATIO["Total"]:
+                        if obs.observation.control_groups[3][1] == 0:
                             if self.can_do(obs, actions.FUNCTIONS.Train_Observer_quick.id):
                                 return actions.FUNCTIONS.Train_Observer_quick("now")
                         if self.can_do(obs, actions.FUNCTIONS.Train_Immortal_quick.id):
                             return actions.FUNCTIONS.Train_Immortal_quick("now")
                             
         
-        #Select and add units to control groups and attack if enough units
-        if self.action_number == 6:
+        #Select and add units to control groups
+        if self.action_number == 9:
             
             if self.sub_action_number == 2:
-                return actions.FUNCTIONS.move_camera(self.army_rally_camera)
+                if obs.observation.player.army_count > 0:
+                    self.camera_location = 2
+                    return actions.FUNCTIONS.move_camera(self.army_rally_camera)
                 
             if self.sub_action_number == 4:
                 if self.can_do(obs, actions.FUNCTIONS.select_army.id):
+                    self.army_selected = True
                     return actions.FUNCTIONS.select_army("select")
-            
+                
             if self.sub_action_number == 5:
-                return actions.FUNCTIONS.select_control_group("set", 1)
+                if self.army_selected:
+                    self.army_selected = False
+                    return actions.FUNCTIONS.select_control_group("set", 0)
                 
-            if self.sub_action_number == 6:
-                if len(stalkers) > 0:
-                    stalker = random.choice(stalkers)
-                    if stalker.x >= 0 and stalker.x < self.SCREEN_DIM and stalker.y >= 0 and stalker.y < self.SCREEN_DIM:
-                        return actions.FUNCTIONS.select_point("select_all_type", (stalker.x, stalker.y))
+            if self.sub_action_number % 2 == 0 and self.sub_action_number >= 6:
+                x = int(round((self.sub_action_number - 4) / 2))
+                if len(scrap_metals[x]) > 0:
+                    scrap_metal = random.choice(scrap_metals[x])
+                    if scrap_metal.x >= 0 and scrap_metal.x < self.SCREEN_DIM and scrap_metal.y >= 0 and scrap_metal.y < self.SCREEN_DIM:
+                        return actions.FUNCTIONS.select_point("select_all_type", (scrap_metal.x, scrap_metal.y))
             
-            if self.sub_action_number == 7:
-                if self.unit_type_is_selected(obs, units.Protoss.Stalker):
-                    return actions.FUNCTIONS.select_control_group("append", 2)
-                
-            if self.sub_action_number == 8:
-                if len(sentries) > 0:
-                    sentry = random.choice(sentries)
-                    if sentry.x >= 0 and sentry.x < self.SCREEN_DIM and sentry.y >= 0 and sentry.y < self.SCREEN_DIM:
-                        return actions.FUNCTIONS.select_point("select_all_type", (sentry.x, sentry.y))
-            
-            if self.sub_action_number == 9:
-                if self.unit_type_is_selected(obs, units.Protoss.Sentry):
-                    return actions.FUNCTIONS.select_control_group("append", 3)
-                
-            if self.sub_action_number == 10:
-                if len(observers) > 0:
-                    observer = random.choice(observers)
-                    if observer.x >= 0 and observer.x < self.SCREEN_DIM and observer.y >= 0 and observer.y < self.SCREEN_DIM:
-                        return actions.FUNCTIONS.select_point("select_all_type", (observer.x, observer.y))
-            
-            if self.sub_action_number == 11:
-                if self.unit_type_is_selected(obs, units.Protoss.Observer):
-                    return actions.FUNCTIONS.select_control_group("append", 4)
-                
-            if self.sub_action_number == 12:
-                if len(immortals) > 0:
-                    immortal = random.choice(immortals)
-                    if immortal.x >= 0 and immortal.x < self.SCREEN_DIM and immortal.y >= 0 and immortal.y < self.SCREEN_DIM:
-                        return actions.FUNCTIONS.select_point("select_all_type", (immortal.x, immortal.y))
-            
-            if self.sub_action_number == 13:
-                if self.unit_type_is_selected(obs, units.Protoss.Immortal):
-                    return actions.FUNCTIONS.select_control_group("append", 5)
-                
-            if self.sub_action_number == 14:
-                if len(templars) > 0:
-                    templar = random.choice(templars)
-                    if templar.x >= 0 and templar.x < self.SCREEN_DIM and templar.y >= 0 and templar.y < self.SCREEN_DIM:
-                        return actions.FUNCTIONS.select_point("select_all_type", (templar.x, templar.y))
-            
-            if self.sub_action_number == 15:
-                self.sub_action_number = 0
-                self.action_number = 7
-                if self.unit_type_is_selected(obs, units.Protoss.HighTemplar):
-                    return actions.FUNCTIONS.select_control_group("append", 6)
+            if self.sub_action_number % 2 == 1 and self.sub_action_number >= 7:
+                x = int(round((self.sub_action_number - 5) / 2))
+                if self.sub_action_number == 15:
+                    self.sub_action_number = 0
+                    self.action_number = 10
+                if self.unit_type_is_selected(obs, self.ARMY_COMPOSITION[x]):
+                    return actions.FUNCTIONS.select_control_group("append", x)
                 
             
         #Send army to rekt enemy ezzzzzzzz
-        if self.action_number == 7:
+        if self.action_number == 10:
             
             if self.sub_action_number == 1:
-                return actions.FUNCTIONS.select_control_group("recall", 1)
+                return actions.FUNCTIONS.select_control_group("recall", 0)
             
             if self.sub_action_number == 3:
                 pixels_y, pixels_x = (obs.observation.feature_minimap.selected == features.PlayerRelative.SELF).nonzero()
@@ -638,122 +851,136 @@ class ProtossAgent(base_agent.BaseAgent):
                 for i in range(0, len(pixels_y)):
                     pixels.append((pixels_x[i], pixels_y[i]))
                 kmeans = KMeans(n_clusters = 1)
-                kmeans.fit(pixels)
-                return actions.FUNCTIONS.move_camera(kmeans.cluster_centers_[0])
+                if len(pixels) > 0:
+                    kmeans.fit(pixels)
+                    self.camera_location = 3
+                    return actions.FUNCTIONS.move_camera(kmeans.cluster_centers_[0])
             
             if self.sub_action_number == 5:
                 pixels_y, pixels_x = (obs.observation.feature_minimap.selected == features.PlayerRelative.SELF).nonzero()
                 pixels = []
                 for i in range(0, len(pixels_y)):
                     pixels.append((pixels_x[i], pixels_y[i]))
-                    print(pixels)
                 kmeans = KMeans(n_clusters = 1)
-                kmeans.fit(pixels)
-                #if abs(kmeans.cluster_centers_[0][0] - self.possible_enemy_base[0]) > 2 and abs(kmeans.cluster_centers_[0][1] - self.possible_enemy_base[1]) > 2:
-                 #   return actions.FUNCTIONS.Attack_minimap("now", self.possible_enemy_base)
-                micromanage = False
-                for i in range(len(obs.observation.feature_units)):
-                    if obs.observation.feature_units[i].alliance == 4 and obs.observation.feature_units[i].unit_type != units.Zerg.ChangelingZealot:
+                if len(pixels) > 0:
+                    kmeans.fit(pixels)
+                    micromanage = False
+                    enemy_count = 0
+                    for i in range(len(obs.observation.feature_units)):
+                        if obs.observation.feature_units[i].alliance == 4:
+                            enemy_count+=1
+                    if self.written == False:
+                        if self.step_number < 9000:
+                            if enemy_count > 5:
+                                self.written = True
+                                self.csv_row = [str(self.zerglings), str(self.roaches), str(self.drones), str(self.warrens), str(self.extractors), '0']
+                                with open(r'scouting_data.csv', 'a') as f:
+                                    writer = csv.writer(f, lineterminator='\n')
+                                    writer.writerow(self.csv_row)
+                        else:
+                            self.written = True
+                            self.csv_row = [str(self.zerglings), str(self.roaches), str(self.drones), str(self.warrens), str(self.extractors), '1']
+                            with open(r'scouting_data.csv', 'a') as f:
+                                writer = csv.writer(f, lineterminator='\n')
+                                writer.writerow(self.csv_row)
+                    if enemy_count > 2:
                         micromanage = True
-                if micromanage == False and obs.observation.control_groups[1][1] >= self.ARMY_ATTACK_THRESHOLD:
-                    self.sub_action_number = 0
-                    self.action_number = 1
-                    if self.can_do(obs, actions.FUNCTIONS.Attack_minimap.id):
-                        return actions.FUNCTIONS.Attack_minimap("now", self.main_enemy_base)
+                    if micromanage == False:
+                        self.sub_action_number = 0
+                        self.action_number = 1
+                        if obs.observation.control_groups[0][1] >= self.ARMY_ATTACK_THRESHOLD:
+                            self.attacking = True
+                        elif obs.observation.control_groups[0][1] <= self.ARMY_RETREAT_THRESHOLD:
+                            self.attacking = False
+                        if self.attacking:
+                            if abs(kmeans.cluster_centers_[0][0] - self.possible_enemy_base[0]) < 4 and abs(kmeans.cluster_centers_[0][1] - self.possible_enemy_base[1]) < 4:
+                                self.possible_enemy_base_destroyed = True
+                            if self.possible_enemy_base_destroyed == False:
+                                if self.can_do(obs, actions.FUNCTIONS.Attack_minimap.id):
+                                    return actions.FUNCTIONS.Attack_minimap("now", self.possible_enemy_base)
+                            if abs(kmeans.cluster_centers_[0][0] - self.main_enemy_base[0]) < 4 and abs(kmeans.cluster_centers_[0][1] - self.main_enemy_base[1]) < 4:
+                                self.main_enemy_base_destroyed = True
+                            if self.main_enemy_base_destroyed == False:
+                                if self.can_do(obs, actions.FUNCTIONS.Attack_minimap.id):
+                                    return actions.FUNCTIONS.Attack_minimap("now", self.main_enemy_base)
+                            else:
+                                self.sub_action_number-=1
+                                x = random.randint(4, 59)
+                                if self.build_lean[1] == 1:
+                                    y = random.randint(4, 20)
+                                else:
+                                    y = random.randint(43, 59)
+                                if self.can_do(obs, actions.FUNCTIONS.Attack_minimap.id):
+                                    return actions.FUNCTIONS.Attack_minimap("now", (x, y))
+                        else:
+                            if self.can_do(obs, actions.FUNCTIONS.Move_minimap.id):
+                                if self.unit_type_is_selected(obs, units.Protoss.Probe) == False:
+                                    return actions.FUNCTIONS.Move_minimap("now", (self.army_rally_camera[0], self.army_rally_camera[1] - 2*self.build_lean[1]))
+            
+            if self.sub_action_number > 5 and self.sub_action_number < 26:
+                if self.sub_action_number % 4 == 2:
+                    return actions.FUNCTIONS.select_control_group("recall", int(round((self.sub_action_number - 2) / 4)))
                 
-            if self.sub_action_number == 6:
-                return actions.FUNCTIONS.select_control_group("recall", 2)
-            
-            if self.sub_action_number == 7:
-                if len(stalkers) > 0:
-                    stalkers_x = []
-                    stalkers_y = []
-                    for i in range(len(stalkers)):
-                        stalkers_x.append(stalkers[i].x)
-                        stalkers_y.append(stalkers[i].y)
-                    stalkers_y = sum(stalkers_y) / len(stalkers_y)
-                    stalkers_x = sum(stalkers_x) / len(stalkers_x)
-                    optimal_move = self.get_optimal_move(obs, 2, stalkers_x, stalkers_y)
-                    if self.unit_type_is_selected(obs, units.Protoss.Stalker):
-                        return actions.FUNCTIONS.Move_screen("now", optimal_move)
-            
-            if self.sub_action_number == 8:
-                return actions.FUNCTIONS.select_control_group("recall", 3)
-            
-            if self.sub_action_number == 9:
-                if len(sentries) > 0:
-                    sentries_x = []
-                    sentries_y = []
-                    for i in range(len(sentries)):
-                        sentries_x.append(sentries[i].x)
-                        sentries_y.append(sentries[i].y)
-                    sentries_y = sum(sentries_y) / len(sentries_y)
-                    sentries_x = sum(sentries_x) / len(sentries_x)
-                    optimal_move = self.get_optimal_move(obs, 2, sentries_x, sentries_y)
+                if self.sub_action_number % 4 == 3:
+                    x = int(round((self.sub_action_number - 3) / 4))
+                    if len(scrap_metals[x]) > 0:
+                        scrap_metals_x = []
+                        scrap_metals_y = []
+                        for i in range(len(scrap_metals[x])):
+                            scrap_metals_x.append(scrap_metals[x][i].x)
+                            scrap_metals_y.append(scrap_metals[x][i].y)
+                        scrap_metals_x = sum(scrap_metals_x) / len(scrap_metals_x)
+                        scrap_metals_y = sum(scrap_metals_y) / len(scrap_metals_y)
+                        optimal_move = self.get_optimal_move(obs, x, scrap_metals_x, scrap_metals_y)
+                        if self.unit_type_is_selected(obs, self.ARMY_COMPOSITION[x]):
+                            if x == 1:
+                                if self.can_do(obs, actions.FUNCTIONS.Effect_Blink_screen.id):
+                                    return actions.FUNCTIONS.Effect_Blink_screen("now", optimal_move)
+                            elif self.can_do(obs, actions.FUNCTIONS.Move_screen.id):
+                                return actions.FUNCTIONS.Move_screen("now", optimal_move)
+                
+                if self.sub_action_number == 12:
+                    if len(sentries) > 0:
+                        if self.time_shield_up > 300:
+                            for i in range(len(sentries)):
+                                if sentries[i].energy > 75:
+                                    if sentries[i].x >= 0 and sentries[i].x < self.SCREEN_DIM and sentries[i].y >= 0 and sentries[i].y < self.SCREEN_DIM:
+                                        return actions.FUNCTIONS.select_point("select", (sentries[i].x, sentries[i].y))
+                                        
+                if self.sub_action_number == 13:
                     if self.unit_type_is_selected(obs, units.Protoss.Sentry):
-                        return actions.FUNCTIONS.Move_screen("now", optimal_move)
+                        if self.can_do(obs, actions.FUNCTIONS.Effect_GuardianShield_quick.id):
+                            self.time_shield_up = 0
+                            return actions.FUNCTIONS.Effect_GuardianShield_quick("now")
             
-            if self.sub_action_number == 10:
-                return actions.FUNCTIONS.select_control_group("recall", 4)
-            
-            if self.sub_action_number == 11:
-                if len(observers) > 0:
-                    observers_x = []
-                    observers_y = []
-                    for i in range(len(observers)):
-                        observers_x.append(observers[i].x)
-                        observers_y.append(observers[i].y)
-                    observers_y = sum(observers_y) / len(observers_y)
-                    observers_x = sum(observers_x) / len(observers_x)
-                    optimal_move = self.get_optimal_move(obs, 2, observers_x, observers_y)
-                    if self.unit_type_is_selected(obs, units.Protoss.Observer):
-                        return actions.FUNCTIONS.Move_screen("now", optimal_move)
-            
-            if self.sub_action_number == 12:
-                return actions.FUNCTIONS.select_control_group("recall", 5)
-            
-            if self.sub_action_number == 13:
-                if len(immortals) > 0:
-                    immortals_x = []
-                    immortals_y = []
-                    for i in range(len(immortals)):
-                        immortals_x.append(immortals[i].x)
-                        immortals_y.append(immortals[i].y)
-                    immortals_y = sum(immortals_y) / len(immortals_y)
-                    immortals_x = sum(immortals_x) / len(immortals_x)
-                    optimal_move = self.get_optimal_move(obs, 2, immortals_x, immortals_y)
-                    if self.unit_type_is_selected(obs, units.Protoss.Immortal):
-                        return actions.FUNCTIONS.Move_screen("now", optimal_move)
-            
-            if self.sub_action_number == 14:
-                return actions.FUNCTIONS.select_control_group("recall", 6)
-            
-            if self.sub_action_number == 15:
-                self.sub_action_number = 0
-                if obs.observation.control_groups[1][1] < self.ARMY_ATTACK_THRESHOLD:#############
-                    self.action_number = 1
-                if len(templars) > 0:
-                    templars_x = []
-                    templars_y = []
-                    for i in range(len(templars)):
-                        templars_x.append(templars[i].x)
-                        templars_y.append(templars[i].y)
-                    templars_y = sum(templars_y) / len(templars_y)
-                    templars_x = sum(templars_x) / len(templars_x)
-                    optimal_move = self.get_optimal_move(obs, 2, templars_x, templars_y)
+                if self.sub_action_number == 24:
+                    if len(templars) > 0:
+                        for i in range(len(templars)):
+                            if templars[i].energy > 75:
+                                if templars[i].x >= 0 and templars[i].x < self.SCREEN_DIM and templars[i].y >= 0 and templars[i].y < self.SCREEN_DIM:
+                                    return actions.FUNCTIONS.select_point("select", (templars[i].x, templars[i].y))
+                            
+                if self.sub_action_number == 25:
                     if self.unit_type_is_selected(obs, units.Protoss.HighTemplar):
-                        return actions.FUNCTIONS.Move_screen("now", optimal_move)
-        
-        
+                        storm_location = self.get_optimal_move(obs, 9, 0, 0)
+                        if self.should_cast_storm(obs, storm_location[0], storm_location[1]):
+                            if self.can_do(obs, actions.FUNCTIONS.Effect_PsiStorm_screen.id):
+                                return actions.FUNCTIONS.Effect_PsiStorm_screen("now", storm_location)
+                        
+            if self.sub_action_number > 25:
+                self.sub_action_number = 0
+                self.action_number = 1
+                
+                        
         #Select worker and center camera on natural expansion, build nexus and assimilators
-        if self.action_number == 10:
+        if self.action_number == 11:
             
             if self.sub_action_number == 1:
                 self.number_of_bases+=1
-                if self.can_do(obs, actions.FUNCTIONS.select_idle_worker.id):
-                    return actions.FUNCTIONS.select_idle_worker("select")
+                return actions.FUNCTIONS.select_control_group("recall", 8)
                     
             if self.sub_action_number == 3:
+                self.camera_location = 1
                 return actions.FUNCTIONS.move_camera(self.natural_base_camera)
             
             if self.sub_action_number == 5:
@@ -775,7 +1002,101 @@ class ProtossAgent(base_agent.BaseAgent):
                         return actions.FUNCTIONS.Build_Assimilator_screen("queued", (self.geysers[1].x, self.geysers[1].y))
                             
                             
-                            
+        #Cybernetics Core Research
+        if self.action_number == 12:
+            
+            if self.sub_action_number == 2:
+                self.camera_location = 0
+                return actions.FUNCTIONS.move_camera(self.main_base_camera)
+            
+            if self.sub_action_number == 4:
+                return actions.FUNCTIONS.select_point("select", (cores[0].x, cores[0].y))
+            
+            if self.sub_action_number == 5:
+                self.sub_action_number = 0
+                self.action_number = 6
+                if self.unit_type_is_selected(obs, units.Protoss.CyberneticsCore):
+                    if self.can_do(obs, actions.FUNCTIONS.Research_WarpGate_quick.id):
+                        self.researching_warpgates = True
+                        return actions.FUNCTIONS.Research_WarpGate_quick("now")
+            
+            
+        #Twilight Council Research
+        if self.action_number == 13:
+            
+            if self.sub_action_number == 2:
+                self.camera_location = 0
+                return actions.FUNCTIONS.move_camera(self.main_base_camera)
+            
+            if self.sub_action_number == 4:
+                return actions.FUNCTIONS.select_point("select", (councils[0].x, councils[0].y))
+            
+            if self.sub_action_number == 5:
+                self.sub_action_number = 0
+                self.action_number = 6
+                if self.unit_type_is_selected(obs, units.Protoss.TwilightCouncil):
+                    if self.can_do(obs, actions.FUNCTIONS.Research_Charge_quick.id):
+                        return actions.FUNCTIONS.Research_Charge_quick("now")
+                    elif self.can_do(obs, actions.FUNCTIONS.Research_Blink_quick.id):
+                        self.researching_blink = True
+                        return actions.FUNCTIONS.Research_Blink_quick("now")
+        
+        
+        #Templar Archive Research
+        if self.action_number == 14:
+            
+            if self.sub_action_number== 2:
+                self.camera_location = 0
+                return actions.FUNCTIONS.move_camera(self.main_base_camera)
+            
+            if self.sub_action_number == 4:
+                return actions.FUNCTIONS.select_point("select", (archives[0].x, archives[0].y))
+            
+            if self.sub_action_number == 5:
+                self.sub_action_number = 0
+                self.action_number = 6
+                if self.unit_type_is_selected(obs, units.Protoss.TemplarArchive):
+                    if self.can_do(obs, actions.FUNCTIONS.Research_PsiStorm_quick.id):
+                        self.researching_storm = True
+                        return actions.FUNCTIONS.Research_PsiStorm_quick("now")
+                    
+                    
+        #Scouting
+        if self.action_number == 15:
+                
+            if self.sub_action_number == 1:
+                return actions.FUNCTIONS.select_control_group("recall", 7)
+            
+            if self.sub_action_number == 2:
+                if self.can_do(obs, actions.FUNCTIONS.Move_minimap.id):
+                    return actions.FUNCTIONS.Move_minimap("now", self.main_enemy_base)
+            
+            if self.sub_action_number == 4:
+                pixels_y, pixels_x = (obs.observation.feature_minimap.selected == features.PlayerRelative.SELF).nonzero()
+                pixels = []
+                for i in range(0, len(pixels_y)):
+                    pixels.append((pixels_x[i], pixels_y[i]))
+                if len(pixels) > 0:
+                    return actions.FUNCTIONS.move_camera(pixels[0])
+            
+            if self.sub_action_number == 6:
+                self.sub_action_number = 0
+                self.action_number = 2
+                if self.zerglings < len(self.get_units_by_type(obs, units.Zerg.Zergling)):
+                    self.zerglings = len(self.get_units_by_type(obs, units.Zerg.Zergling))
+                if self.roaches < len(self.get_units_by_type(obs, units.Zerg.Roach)):
+                    self.roaches = len(self.get_units_by_type(obs, units.Zerg.Roach))
+                if self.drones < len(self.get_units_by_type(obs, units.Zerg.Drone)):
+                    self.drones = len(self.get_units_by_type(obs, units.Zerg.Drone))
+                if self.warrens < len(self.get_units_by_type(obs, units.Zerg.RoachWarren)):
+                    self.warrens = len(self.get_units_by_type(obs, units.Zerg.RoachWarren))
+                if self.extractors < len(self.get_units_by_type(obs, units.Zerg.Extractor)):
+                    self.extractors = len(self.get_units_by_type(obs, units.Zerg.Extractor))
+                    
+                
+                
+            
+            
         return actions.FUNCTIONS.no_op()
 
 
@@ -792,14 +1113,16 @@ def main(unused_argv):
                     #Players
                     players=[sc2_env.Agent(sc2_env.Race.protoss),
                              sc2_env.Bot(sc2_env.Race.zerg,
-                                         sc2_env.Difficulty.medium_hard)],
+                                         sc2_env.Difficulty.hard)],
                     #Define map and minimap size
                     agent_interface_format=features.AgentInterfaceFormat(
                             feature_dimensions=features.Dimensions(screen=96, minimap=64),
                             use_feature_units=True),
                     step_mul=1,
                     game_steps_per_episode=0,
-                    visualize=True) as env:
+                    save_replay_episodes=1,
+                    replay_dir="/Program Files (x86)/StarCraft II/Replays",
+                    visualize=False) as env:
                 
                 agent.setup(env.observation_spec(), env.action_spec())
                 timesteps = env.reset()
