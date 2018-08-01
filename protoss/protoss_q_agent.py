@@ -15,6 +15,7 @@ import random, math, csv, numpy, pdb
 from sklearn.cluster import KMeans
 import QLearningLib as ql
 import FunctionListTest1 as flt
+import random as rd
 
 """
 INIT OF THE CLASS
@@ -101,7 +102,7 @@ class ProtossAgent(base_agent.BaseAgent):
 
 
     def actionToMovement(self, action, currentX, currentY, enemyBaseX, enemyBaseY, ourBaseX, ourBaseY):
-        moveStep = 20
+        randomness = 4
         enemyDirX = (enemyBaseX - ourBaseY)
         enemyDirY = (enemyBaseY - ourBaseY)
         enemyStartDistance = (enemyDirX*enemyDirX + enemyDirY*enemyDirY)**.5
@@ -112,24 +113,24 @@ class ProtossAgent(base_agent.BaseAgent):
         valid = True
         #S action
         if action == 1 or valid == False:
-            newX = currentX
-            newY = currentY
-        #F action
+            newX = currentX + rd.randint(-randomness, randomness)
+            newY = currentY + rd.randint(-randomness, randomness)
+        #A action
         if action == 2:
-            newX = currentX + enemyDirX*moveStep
-            newY = currentY + enemyDirY*moveStep
-        #B action
-        if action == 3:
-            newX = currentX - enemyDirX*moveStep
-            newY = currentY - enemyDirY*moveStep
+            newX = enemyBaseX + rd.randint(-randomness, randomness)
+            newY = enemyBaseY + rd.randint(-randomness, randomness)
         #R action
+        if action == 3:
+            newX = ourBaseX + rd.randint(-randomness, randomness)
+            newY = ourBaseY + rd.randint(-randomness, randomness)
+        #N action
         if action == 4:
-            newX = currentX + enemyDirX*moveStep
-            newY = currentY - enemyDirY*moveStep
-        #L action
+            newX = currentX + rd.randint(-randomness, randomness)
+            newY = currentY + rd.randint(-randomness, randomness)
+        #H action
         if action == 5:
-            newX = currentX - enemyDirX*moveStep
-            newY = currentY + enemyDirY*moveStep
+            newX = currentX + rd.randint(-randomness, randomness)
+            newY = currentY + rd.randint(-randomness, randomness)
         #Invalid Action Check
         if newX >= 64 or newX < 0 or newY >= 64 or newY < 0:
             valid = False
@@ -1006,7 +1007,8 @@ def main(unused_argv):
                     #Define map and minimap size
                     agent_interface_format=features.AgentInterfaceFormat(
                             feature_dimensions=features.Dimensions(screen=96, minimap=64),
-                            use_feature_units=True),
+                            use_feature_units=True, 
+                            use_unit_counts=True),
                     step_mul=1,
                     game_steps_per_episode=0,
                     visualize=True) as env:
