@@ -2,9 +2,7 @@
 # -*- coding: utf-8 -*-
 """
 Created on Thu Jul 26 15:47:13 2018
-
 @author: EvanTroop
-
 Sources : 
     https://stackoverflow.com/questions/22963263/creating-a-zero-filled-pandas-data-frame
     https://stackoverflow.com/questions/18692261/whats-a-simple-way-to-hard-code-a-6x6-numpy-matrix
@@ -55,7 +53,7 @@ def get_scaled_value(typ, n_zealot=0, n_stalker=0, n_immortal=0, n_sentury= 0, t
         numbers = [n_zealot, n_stalker, n_immortal, n_sentury, time]
         outs = [0,0,0,0,0]
         for i in range(len(numbers)):
-            print(scales[i])
+            #print("scales:  " + str(scales[i]))
             for j in range(len(scales[i])):
 
                 if scales[i][j] >= numbers[i]:
@@ -67,8 +65,21 @@ def get_scaled_value(typ, n_zealot=0, n_stalker=0, n_immortal=0, n_sentury= 0, t
         print("OUTS : : :" + str(outs))
         state = 10000*outs[0] + 1000*outs[1] + 100*outs[2] + 10*outs[3] + outs[4]
         return state
-        
-
+  
+"""This returns a list with format [n_zealots, n_stalker, n_immortal, n_sentury]"""
+def get_unit_nums(data):
+    out = list([0,0,0,0])
+    for l1 in data:
+        if l1[0] == 73:
+            out[0] = l1[1]
+        elif l1[0] == 74:
+            out[1] = l1[1]
+        elif l1[0] == 83:
+            out[2] = l1[1]
+        elif l1[0] == 77:
+            out[3] = l1[1]
+    return out
+    
 """ Q_List Driver Class"""
 class Q_list():
     states = [10]
@@ -83,7 +94,7 @@ class Q_list():
         
         # will store past actions
         self.past_actions = pd.DataFrame(0,index=[0,1], columns=['state', 'action'])
-        print(self.past_actions)
+
         #a number if you want to limit how many future steps are counted, -1 if you want no endpoint
         self.recersive_units = 10
         #how much each step into the future retains value
@@ -101,7 +112,7 @@ class Q_list():
         
         self.q_list = pd.read_csv(path, index_col=0)
         print("Q-list generated from path : " + path)
-        print(self.q_list)
+
         
       
     
@@ -120,23 +131,24 @@ class Q_list():
     
     """This will set the reward for a given state. won't do any calculations"""
     def set_reward(self, state, action, last_reward):
-        print(action)
+        print("action: " + str(action))
         
         if self.is_learning:
-            
+            print("last reward: " + str(last_reward))
+
             st = self.past_actions.loc[1]['state']
             ac = self.past_actions.loc[1]['action']
 
             if st != 0:   
-                print(str(st) + "    " + str(ac))
-                print(self.q_list)
-                print("reward stuff")
+                #print(str(st) + "    " + str(ac))
                 current_val = self.q_list.loc[st][str(ac)]
                 current_val = current_val + last_reward #* self.gamma 
-                
-                print("state is: " + str(st))
-                print("action is: " + str(ac))
-                print("type is: " + str(type(st)))
+                #print("reward: " + str(last_reward))
+                #print("current_val: " + str(current_val))
+                #current_val =+ 1
+                #print("state is: " + str(st))
+                #print("action is: " + str(ac))
+                #print("type is: " + str(type(st)))
                 self.q_list.loc[st][str(ac)] = current_val
 
                
@@ -158,8 +170,6 @@ class Q_list():
     
     
     def export_q_list(self):
-        print("q  list in export")
-        print(self.q_list)
         self.q_list.to_csv(self.path)
         print("Q-List was successfully exported to path : " + self.path)
         
@@ -184,5 +194,7 @@ print(get_scaled_value("SIMPLE", n_zealot=1, n_stalker=3, n_immortal=4, n_sentur
 #print(ql.get_max_action(11111))
 #print("HHHsssHHH")
 #print(len(ql.q_list.loc[11111]))
+
+#generate_csv("Army_Q.csv")
 
 
