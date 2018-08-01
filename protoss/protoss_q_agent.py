@@ -29,7 +29,11 @@ class ProtossAgent(base_agent.BaseAgent):
     
     real_old_score = 0
     old_score = 0
-    
+    old_ek = 0
+    ek = 0
+    old_un = 0
+    un = 0
+    armySelected = False
     
     should_reset_unit_count = False
     SCREEN_DIM = 96
@@ -50,7 +54,7 @@ class ProtossAgent(base_agent.BaseAgent):
     
     Q_List = ql.Q_list('Army_Q.csv', 'LEARNING')
     
-    
+    q_run_step = 0
     attack_number = 0
     step_number = 0
     action_number = 1
@@ -111,10 +115,10 @@ class ProtossAgent(base_agent.BaseAgent):
         newX = 0
         newY = 0
         valid = True
-        #S action
+        #C action
         if action == 1 or valid == False:
-            newX = currentX + rd.randint(-randomness, randomness)
-            newY = currentY + rd.randint(-randomness, randomness)
+            newX = 32 + rd.randint(-randomness, randomness)
+            newY = 32 + rd.randint(-randomness, randomness)
         #A action
         if action == 2:
             newX = enemyBaseX + rd.randint(-randomness, randomness)
@@ -125,12 +129,12 @@ class ProtossAgent(base_agent.BaseAgent):
             newY = ourBaseY + rd.randint(-randomness, randomness)
         #N action
         if action == 4:
-            newX = currentX + rd.randint(-randomness, randomness)
-            newY = currentY + rd.randint(-randomness, randomness)
+            newX = self.natural_base_camera[0] + rd.randint(-randomness, randomness)
+            newY = self.natural_base_camera[1] + rd.randint(-randomness, randomness)
         #H action
         if action == 5:
-            newX = currentX + rd.randint(-randomness, randomness)
-            newY = currentY + rd.randint(-randomness, randomness)
+            newX = self.possible_enemy_base[0] + rd.randint(-randomness, randomness)
+            newY = self.possible_enemy_base[1] + rd.randint(-randomness, randomness)
         #Invalid Action Check
         if newX >= 64 or newX < 0 or newY >= 64 or newY < 0:
             valid = False
@@ -238,7 +242,7 @@ class ProtossAgent(base_agent.BaseAgent):
         #print(highest_affinity)
         return location
         
-    
+    """
     #Get score differential
     def get_score(self, obs):
         self.real_old_score = self.old_score
@@ -248,6 +252,23 @@ class ProtossAgent(base_agent.BaseAgent):
         #print("get score reward: " + str(4*obs.observation.score_cumulative.killed_value_structures + obs.observation.score_cumulative.killed_value_units - self.real_old_score))
         #return (4*obs.observation.score_cumulative.killed_value_structures + obs.observation.score_cumulative.killed_value_units - self.real_old_score)
         return (4*obs.observation.score_cumulative.killed_value_structures + obs.observation.score_cumulative.killed_value_units)
+    """
+    def get_score(self, obs):
+        self.old_ek = self.ek
+        self.ek = 4*obs.observation.score_cumulative.killed_value_structures + obs.observation.score_cumulative.killed_value_units
+        
+        unit_nums = ql.get_unit_nums(obs.observation.unit_counts)
+        self.old_un = self.un
+        self.un = unit_nums[0]*100 + unit_nums[1]*175 + unit_nums[2]*350 + unit_nums[3]*150
+        
+        vk = self.ek-self.old_ek
+        vl = self.old_un - self.un
+        
+        reward = (vk-vl)*(vk-vl)*(vk-vl)/(math.log10(self.step_number))
+        print("reward: " + str(reward))
+        #print("vk: " + str(vk))
+        #print("vl: " + str(vl))
+        return reward
     
     #Returns an action to the game at the end of every step
     def step(self, obs):
@@ -822,92 +843,62 @@ class ProtossAgent(base_agent.BaseAgent):
         #print("len of probes" + str(len(probes)))
         #Send army to rekt enemy ezzzzzzzz
         if self.action_number == 10:
-            print("obs units:")
-            print(obs.observation.unit_counts)
-            """
-            Zealot = 73
-            Sentry = 77
-            Stalker = 74
-            Immortal = 83
-            """
-            zealots = self.get_units_by_type(obs, units.Protoss.Zealot)
-            stalkers = self.get_units_by_type(obs, units.Protoss.Stalker)
-            sentries = self.get_units_by_type(obs, units.Protoss.Sentry)
-            observers = self.get_units_by_type(obs, units.Protoss.Observer)
-            immortals = self.get_units_by_type(obs, units.Protoss.Immortal)
-            templars = self.get_units_by_type(obs, units.Protoss.HighTemplar)
-            probes = self.get_units_by_type(obs, units.Protoss.Probe)
-            if self.sub_action_number < 10:
-                last_reward = self.get_score(obs)
+            if self.armySelected == False:
+                self.q_run_step += 1
+            if self.q_run_step % 6 == 0:
+                #print("running q" + str(self.q_run_step))
                 
-                if self.sub_action_number% 3 == 1:
-                    self.yc = 22
-                    #print("yc: 22")
-                elif self.sub_action_number% 3 == 2:
-                    self.yc = 38
-                    #print("yc: 38")
-                else:
-                    self.yc = 6
-                    #print("yc: 6")
-                if math.floor((self.sub_action_number - 1) / 3) == 0:
-                    self.xc = 10
-                    #print("xc: 10")
-                elif math.floor((self.sub_action_number - 1) / 3) == 1:
-                    self.xc = 28
-                    #print("xc: 28")
-                else:
-                    self.xc = 45
-                    #print("xc: 45")
-                zealots = self.get_units_by_type(obs, units.Protoss.Zealot)
-                stalkers = self.get_units_by_type(obs, units.Protoss.Stalker)
-                sentries = self.get_units_by_type(obs, units.Protoss.Sentry)
-                observers = self.get_units_by_type(obs, units.Protoss.Observer)
-                immortals = self.get_units_by_type(obs, units.Protoss.Immortal)
-                templars = self.get_units_by_type(obs, units.Protoss.HighTemplar)
-                probes = self.get_units_by_type(obs, units.Protoss.Probe)    
-                self.truzealots += len(zealots)
-                self.trustalkers += len(stalkers)
-                self.trusentries += len(sentries)
-                self.truimmortals += len(immortals)
-                self.truprobes += len(probes)
-
+                """
+                Zealot = 73
+                Sentry = 77
+                Stalker = 74
+                Immortal = 83
+                """
+                
+                #print("action num 0: " + str(self.sub_action_number))
+                
+                #last_reward = self.get_score(obs)
+                #print("check one")
+                unitNums = ql.get_unit_nums(obs.observation.unit_counts)
+                self.truzealots = unitNums[0]
+                self.trustalkers = unitNums[1]
+                self.trusentries = unitNums[3]
+                self.truimmortals = unitNums[2]
+               # self.truprobes += len(probes)
+                #print("check two")
                 self.trunumunits = [self.truzealots, self.trustalkers, self.trusentries,self.truimmortals,self.truprobes,self.step_number]
                 #print(self.trunumunits)
-                if self.xc == 45 and self.yc == 38:
-                    self.should_reset_unit_count = True
-                else:
-                    self.should_reset_unit_count = False
- 
-                return actions.FUNCTIONS.move_camera((self.xc, self.yc))
+               # print("check three")
+     
+                #print("action num 1: " + str(self.sub_action_number))
+                
+                ##### REMEBER TO DO SOMETHING WITH self.trunumunits  BEFORE YOU PAN THE SCREEN AGAIN                
+                #print("attack number even 2")
+                #print("sub action number: " + str(self.sub_action_number))
+                #print("can do select army: " + str(self.can_do(obs, actions.FUNCTIONS.select_army.id)))
+                if self.armySelected == False:
+                    if self.can_do(obs, actions.FUNCTIONS.select_army.id):
+                        #print("selected Army")
+                        #self.sub_action_number += 1
+                        #print("sub action number 3: " + str(self.sub_action_number))
+                        self.armySelected = True
+                        return actions.FUNCTIONS.select_army("select")
+                        
+                self.armySelected = False
+                #print("sub action number 2: " + str(self.sub_action_number))
             
-            if self.should_reset_unit_count == True:
-                self.truzealots = 0
-                self.truimmortals = 0
-                self.trustalkers = 0
-                self.trusentries = 0
-                self.truprobes = 0
-            ##### REMEBER TO DO SOMETHING WITH self.trunumunits  BEFORE YOU PAN THE SCREEN AGAIN                
-            #print("attack number even 2")
-            print("sub action number: " + str(self.sub_action_number))
-            print("can do select army: " + str(self.can_do(obs, actions.FUNCTIONS.select_army.id)))
-            if self.sub_action_number == 10:
+                #print("action num 11")
+                
                 if self.can_do(obs, actions.FUNCTIONS.select_army.id):
-                    print("selected Army")
-                    #self.sub_action_number += 1
-                    print("sub action number 3: " + str(self.sub_action_number))
-                    return actions.FUNCTIONS.select_army("select")
-                    
-            print("sub action number 2: " + str(self.sub_action_number))
-            if self.sub_action_number == 11:
-                if self.can_do(obs, actions.FUNCTIONS.select_army.id):
-                    print("attack number even 3")   
+                    #print("attack number even 3")   
+                   # print("check four")
                     state = ql.get_scaled_value('SIMPLE', n_zealot=self.trunumunits[0], 
                                                 n_stalker=self.trunumunits[1], 
                                                 n_immortal=self.trunumunits[2],
                                                 n_sentury=self.trunumunits[3],
                                                 time=self.trunumunits[4])
                     last_reward = self.get_score(obs)
-                    
+                    print("last reward in agent: " + str(last_reward))
                     action = self.Q_List.get_max_action(state)
                     self.Q_List.set_reward(state, action, last_reward)
                     
@@ -939,8 +930,8 @@ class ProtossAgent(base_agent.BaseAgent):
                     if self.can_do(obs, actions.FUNCTIONS.Move_minimap.id):
                         
                         return actions.FUNCTIONS.Attack_minimap("now", (new_x, new_y))
-                    
-                    
+                        
+            self.army_is_selected = False            
             self.sub_action_number = 0
             self.action_number = 1
                 
