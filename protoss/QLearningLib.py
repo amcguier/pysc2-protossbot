@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
+
 """
 Created on Thu Jul 26 15:47:13 2018
 @author: EvanTroop
@@ -15,9 +16,9 @@ Sources :
 """
 
 import pandas as pd
-import tensorflow as tf
-import numpy as np
 import random as rd
+#import tensorflow as tf
+#import numpy as np
 
 def generate_csv(name, type_list='BASIC'): 
     if type_list == 'BASIC':
@@ -92,8 +93,13 @@ class Q_list():
         self.min_state = 11111
         self.max_state = 55555
         
+        self.record_last_index = 3
+        _index_ = []
+        for i in range(self.record_last_index + 1):
+            _index_.append(i)
+        
         # will store past actions
-        self.past_actions = pd.DataFrame(0,index=[0,1], columns=['state', 'action'])
+        self.past_actions = pd.DataFrame(0,index=_index_, columns=['state', 'action'])
 
         #a number if you want to limit how many future steps are counted, -1 if you want no endpoint
         self.recersive_units = 10
@@ -132,41 +138,38 @@ class Q_list():
     
     """This will set the reward for a given state. won't do any calculations"""
     def set_reward(self, state, action, last_reward):
-        #print("action: " + str(action))
-        
+        print("BEFORE")
+        print(self.past_actions)
         if self.is_learning:
-            #print("last reward: " + str(last_reward))
 
-            st = self.past_actions.loc[1]['state']
-            ac = self.past_actions.loc[1]['action']
-
-            if st != 0:   
-                print(str(st) + "    " + str(ac))
-                current_val = self.q_list.loc[st][str(ac)]
-                current_val = current_val + last_reward #* self.gamma 
-                print("last reward: " + str(last_reward))
-                print("current_val: " + str(current_val))
-                #current_val =+ 1
-                #print("state is: " + str(st))
-                #print("action is: " + str(ac))
-                #print("type is: " + str(type(st)))
-                self.q_list.loc[st][str(ac)] = current_val
-
-               
+            for i in range(len(self.past_actions.index)):
+                st = self.past_actions.loc[i]['state']
+                ac = self.past_actions.loc[i]['action']
+            
+                if st != 0:   
+                    current_val = self.q_list.loc[st][str(ac)]
+                    current_val = current_val + last_reward * self.gamma ** (self.record_last_index - i)
+                    print(current_val)
+                    self.q_list.loc[st][str(ac)] = current_val
         if int(state) >= int(self.min_state) and int(state) <= int(self.max_state) and int(action) >= 1 and int(action) <= 5:
             
-            last_s = st = self.past_actions.loc[1]['state']
-            last_a = self.past_actions.loc[1]['action']
-            
-            self.past_actions.loc[0]['state'] = last_s
-            self.past_actions.loc[0]['action'] = last_a
-            
-            self.past_actions.loc[1]['state'] = state
-            self.past_actions.loc[1]['action'] = action
 
+            for i in range(1, self.record_last_index + 1):
+
+                last_s = self.past_actions.loc[i]['state']
+                last_a = self.past_actions.loc[i]['action']
+                
+                self.past_actions.loc[i - 1]['state'] = last_s
+                self.past_actions.loc[i - 1]['action'] = last_a
             
+                
+            self.past_actions.loc[self.record_last_index]['state'] = state
+            self.past_actions.loc[self.record_last_index]['action'] = action
+            print("AFTER")
+            print(self.past_actions)
             return True
-
+        print("AFTER")
+        print(self.past_actions)
         return False
     
     
@@ -178,23 +181,3 @@ class Q_list():
         
     def end_of_game(self):
         self.export_q_list()
-        #print("End of Game Funcitons Complete")
-    
-
-
-#generate_csv("Army_Q.csv")
-ql = Q_list('Army_Q.csv')
-#print(ql.q_list)
-#print(ql.get_max_action(11111))
-#ql.set_reward(11111, 2, 10)
-#ql.set_reward(11112, 3, 10)
-#ql.set_reward(11113, 3, 10)
-#print(get_scaled_value("SIMPLE", n_zealot=1, n_stalker=3, n_immortal=4, n_sentury= 6, time=100))
-#print(ql.q_list)
-#ql.set_reward(11114, 4, 10)
-#print("HELLO")
-#print(ql.get_max_action(11111))
-#print("HHHsssHHH")
-#print(len(ql.q_list.loc[11111]))
-
-#generate_csv("Army_Q.csv")

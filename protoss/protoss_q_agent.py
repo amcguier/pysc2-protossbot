@@ -103,7 +103,9 @@ class ProtossAgent(base_agent.BaseAgent):
     yc = 9
     
     army_is_selected = False
-
+    
+    wins = 0
+    iterations = 0
 
     def actionToMovement(self, action, currentX, currentY, enemyBaseX, enemyBaseY, ourBaseX, ourBaseY):
         randomness = 4
@@ -239,20 +241,10 @@ class ProtossAgent(base_agent.BaseAgent):
                     if affinity > highest_affinity:
                         highest_affinity = affinity
                         location = [i, j]
-        #print(highest_affinity)
+       
         return location
         
-    """
-    #Get score differential
-    def get_score(self, obs):
-        self.real_old_score = self.old_score
-        self.old_score = 4*obs.observation.score_cumulative.killed_value_structures + obs.observation.score_cumulative.killed_value_units
-        #print("real old score: " + str(self.real_old_score))
-        #print("old score: " + str(self.old_score))
-        #print("get score reward: " + str(4*obs.observation.score_cumulative.killed_value_structures + obs.observation.score_cumulative.killed_value_units - self.real_old_score))
-        #return (4*obs.observation.score_cumulative.killed_value_structures + obs.observation.score_cumulative.killed_value_units - self.real_old_score)
-        return (4*obs.observation.score_cumulative.killed_value_structures + obs.observation.score_cumulative.killed_value_units)
-    """
+   
     def get_score(self, obs):
         self.old_ek = self.ek
         self.ek = 4*obs.observation.score_cumulative.killed_value_structures + obs.observation.score_cumulative.killed_value_units
@@ -265,9 +257,7 @@ class ProtossAgent(base_agent.BaseAgent):
         vl = self.old_un - self.un
         
         reward = (vk-vl)*(vk-vl)*(vk-vl)/(math.log10(self.step_number))
-        print("reward: " + str(reward))
-        #print("vk: " + str(vk))
-        #print("vl: " + str(vl))
+        
         return reward
     
     #Returns an action to the game at the end of every step
@@ -275,7 +265,59 @@ class ProtossAgent(base_agent.BaseAgent):
         super(ProtossAgent, self).step(obs)
         
         #Use K-Means clustering to find center of masses of the various resource clusters
+        if obs.last():
+            if obs.reward == 1:
+                self.wins+=1
+            self.iterations+=1
         if obs.first():
+            self.q_run_step = 0
+            self.attack_number = 0
+            self.step_number = 0
+            self.action_number = 1
+            self.sub_action_number = 0
+            self.number_of_bases = 1
+            self.camera_location = 0
+            self.time_until_nexus = 2000
+            self.time_until_warpgates = 2400
+            self.time_supply_needed = 250
+            self.time_shield_up = 300
+            self.time_chronoboost_effective = 0
+            self.time_attempting_construction = 0
+            self.number_of_facilities = 0
+            self.supply_needed = True
+            self.build_forward_pylon = True
+            self.stop_worker_production = False
+            self.minerals_filled = False
+            self.possible_enemy_base_destroyed = False
+            self.main_enemy_base_destroyed = False
+            self.army_selected = False
+            self.researching_warpgates = False
+            self.attempting_construction = False
+            self.resource_locations = []
+            self.main_base_camera = [0, 0] #*****
+            self.natural_base_camera = [0, 0]
+            self.army_rally_camera = [0, 0]
+            self.main_enemy_base = [0, 0] #*******
+            self.possible_enemy_base = [0, 0]
+            self.nexus_location = [0, 0]
+            self.build_lean = [0, 0]
+            self.first_pylon_location = [0, 0]
+            self.geysers = []
+            #These are for samans function
+            self.truzealots = 0
+            self.truimmortals = 0
+            self.trustalkers = 0
+            self.trusentries = 0
+            self.truprobes = 0
+        
+            self.trunumunits = {self.truzealots, self.trustalkers, self.trusentries, self.truimmortals, self.truprobes, self.step_number}
+            
+            self.xc = 10 #changed from 10
+            self.yc = 9
+            
+            self.army_is_selected = False
+            
+            
             resources_y, resources_x = (obs.observation.feature_minimap.player_relative == features.PlayerRelative.NEUTRAL).nonzero()
             number_of_clusters = int(math.ceil(len(resources_y) / 16))
             resources = []
@@ -384,30 +426,11 @@ class ProtossAgent(base_agent.BaseAgent):
         obs.observation.score_cumulative.total_value_units - obs.observation.score_cumulative.killed_value_units
         
         
-        """if self.sub_action_number < 10:
-            return actions.FUNCTIONS.move_camera((self.main_base_camera[0] - 8*self.build_lean[0], self.main_base_camera[1]))
         
-        self.res = obs.observation.feature_screen.height_map
-        
-        csvfile = "height_map_sample.csv"
-        
-        #Assuming res is a flat list
-        with open(csvfile, "w") as output:
-            writer = csv.writer(output, lineterminator='\n')
-            for val in self.res:
-                writer.writerow([val])    
-        
-        #Assuming res is a list of lists
-        with open(csvfile, "w") as output:
-            writer = csv.writer(output, lineterminator='\n')
-            writer.writerows(self.res)
-            print("nice")
-        
-        exit()"""
         
         q_steps = 0
         
-        #print(str(self.action_number) + " " + str(self.sub_action_number))###################################
+        
         
         #Center camera on and select the main base, rally probes to correct resources, train probes
         if self.action_number == 1:
@@ -430,10 +453,10 @@ class ProtossAgent(base_agent.BaseAgent):
                 if self.unit_type_is_selected(obs, units.Protoss.Nexus):
                     if obs.observation.control_groups[9][1] == 0:
                         return actions.FUNCTIONS.select_control_group("append", 9)
-                    if nexus.assigned_harvesters < nexus.ideal_harvesters and len(minerals) > 0:
+                    if nexus.assigned_harvesters < nexus.ideal_harvesters and len(minerals) > 0 and self.can_do(obs, actions.FUNCTIONS.Rally_Workers_screen.id):
                         return actions.FUNCTIONS.Rally_Workers_screen("now", (minerals[0].x, minerals[0].y))
                     for i in range(len(assimilators)):
-                        if assimilators[i].assigned_harvesters < assimilators[i].ideal_harvesters and assimilators[i].ideal_harvesters != 0:
+                        if assimilators[i].assigned_harvesters < assimilators[i].ideal_harvesters and assimilators[i].ideal_harvesters != 0 and self.can_do(obs, actions.FUNCTIONS.Rally_Workers_screen.id):
                             return actions.FUNCTIONS.Rally_Workers_screen("now", (assimilators[i].x, assimilators[i].y))
                     if self.number_of_bases == 1 or self.minerals_filled:
                         if self.can_do(obs, actions.FUNCTIONS.Cancel_Last_quick.id):
@@ -471,7 +494,8 @@ class ProtossAgent(base_agent.BaseAgent):
                     if self.unit_type_is_selected(obs, units.Protoss.Probe):
                         return actions.FUNCTIONS.select_control_group("set", 8)
                     elif len(probes) > 0:
-                        return actions.FUNCTIONS.select_point("select", (probes[0].x, probes[0].y))
+                        if probes[0].x >= 0 and probes[0].x < self.SCREEN_DIM and probes[0].y >= 0 and probes[0].y < self.SCREEN_DIM:
+                            return actions.FUNCTIONS.select_point("select", (probes[0].x, probes[0].y))
                 else:
                     return actions.FUNCTIONS.select_control_group("recall", 8)
             
@@ -698,8 +722,7 @@ class ProtossAgent(base_agent.BaseAgent):
                 
                 if self.sub_action_number == 6:
                     if self.unit_type_is_selected(obs, units.Protoss.Gateway):
-                        #print(self.time_until_warpgates)
-                        #print(len(gateways))
+                        
                         if self.time_until_warpgates == 0:
                             if self.can_do(obs, actions.FUNCTIONS.Morph_WarpGate_quick.id):
                                 self.sub_action_number = 0
@@ -839,14 +862,13 @@ class ProtossAgent(base_agent.BaseAgent):
                     self.action_number = 10
                 if self.unit_type_is_selected(obs, self.ARMY_COMPOSITION[x]):
                     return actions.FUNCTIONS.select_control_group("set", x)
-        #probes = self.get_units_by_type(obs, units.Protoss.Probe)        
-        #print("len of probes" + str(len(probes)))
+        
         #Send army to rekt enemy ezzzzzzzz
         if self.action_number == 10:
             if self.armySelected == False:
                 self.q_run_step += 1
-            if self.q_run_step % 6 == 0:
-                #print("running q" + str(self.q_run_step))
+            if self.q_run_step % 12 == 0:
+               
                 
                 """
                 Zealot = 73
@@ -855,43 +877,26 @@ class ProtossAgent(base_agent.BaseAgent):
                 Immortal = 83
                 """
                 
-                #print("action num 0: " + str(self.sub_action_number))
                 
-                #last_reward = self.get_score(obs)
-                #print("check one")
                 unitNums = ql.get_unit_nums(obs.observation.unit_counts)
                 self.truzealots = unitNums[0]
                 self.trustalkers = unitNums[1]
                 self.trusentries = unitNums[3]
                 self.truimmortals = unitNums[2]
-               # self.truprobes += len(probes)
-                #print("check two")
+               
                 self.trunumunits = [self.truzealots, self.trustalkers, self.trusentries,self.truimmortals,self.truprobes,self.step_number]
-                #print(self.trunumunits)
-               # print("check three")
-     
-                #print("action num 1: " + str(self.sub_action_number))
                 
-                ##### REMEBER TO DO SOMETHING WITH self.trunumunits  BEFORE YOU PAN THE SCREEN AGAIN                
-                #print("attack number even 2")
-                #print("sub action number: " + str(self.sub_action_number))
-                #print("can do select army: " + str(self.can_do(obs, actions.FUNCTIONS.select_army.id)))
                 if self.armySelected == False:
                     if self.can_do(obs, actions.FUNCTIONS.select_army.id):
-                        #print("selected Army")
-                        #self.sub_action_number += 1
-                        #print("sub action number 3: " + str(self.sub_action_number))
+                        
                         self.armySelected = True
                         return actions.FUNCTIONS.select_army("select")
                         
                 self.armySelected = False
-                #print("sub action number 2: " + str(self.sub_action_number))
-            
-                #print("action num 11")
+                
                 
                 if self.can_do(obs, actions.FUNCTIONS.select_army.id):
-                    #print("attack number even 3")   
-                   # print("check four")
+                 
                     state = ql.get_scaled_value('SIMPLE', n_zealot=self.trunumunits[0], 
                                                 n_stalker=self.trunumunits[1], 
                                                 n_immortal=self.trunumunits[2],
@@ -910,19 +915,18 @@ class ProtossAgent(base_agent.BaseAgent):
                     kmeans = KMeans(n_clusters = 1)
                     if len(pixels) > 0:
                         kmeans.fit(pixels)
-                    #print("attack number even 4")    
+
                     our_x = kmeans.cluster_centers_[0][0]
                     our_y = kmeans.cluster_centers_[0][1]
-                    #print("q_steps" + str(q_steps))
+
                     if q_steps % 8 == 0:
                         self.Q_List.export_q_list()
-                    #print("action" + str(action))
+
                     new_x, new_y = self.actionToMovement(action, our_x, our_y, self.main_enemy_base[0], 
                                                          self.main_enemy_base[1], self.main_base_camera[0], 
                                                          self.main_base_camera[1])
                     q_steps += 1
-                    #new_x, new_y = self.actionToMovement(self, action, 32, 32, 0, 0, 64)
-                    #print("past actionToMovement")
+
                 
             
                     self.army_is_selected = False
