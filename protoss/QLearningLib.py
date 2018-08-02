@@ -35,7 +35,6 @@ def generate_csv(name, type_list='BASIC'):
     
         frame = pd.DataFrame(0,index=state_list, columns=action_list)
         frame.to_csv(name)
-        #print('CSV Created : ' + name)
         frame.describe()
         return True
     return False
@@ -54,7 +53,6 @@ def get_scaled_value(typ, n_zealot=0, n_stalker=0, n_immortal=0, n_sentury= 0, t
         numbers = [n_zealot, n_stalker, n_immortal, n_sentury, time]
         outs = [0,0,0,0,0]
         for i in range(len(numbers)):
-            #print("scales:  " + str(scales[i]))
             for j in range(len(scales[i])):
 
                 if scales[i][j] >= numbers[i]:
@@ -63,7 +61,6 @@ def get_scaled_value(typ, n_zealot=0, n_stalker=0, n_immortal=0, n_sentury= 0, t
                     break
             if(outs[i] == 0):
                 outs[i] = 5
-        #print("OUTS : : :" + str(outs))
         state = 10000*outs[0] + 1000*outs[1] + 100*outs[2] + 10*outs[3] + outs[4]
         return state
   
@@ -93,13 +90,8 @@ class Q_list():
         self.min_state = 11111
         self.max_state = 55555
         
-        self.record_last_index = 3
-        _index_ = []
-        for i in range(self.record_last_index + 1):
-            _index_.append(i)
+
         
-        # will store past actions
-        self.past_actions = pd.DataFrame(0,index=_index_, columns=['state', 'action'])
 
         #a number if you want to limit how many future steps are counted, -1 if you want no endpoint
         self.recersive_units = 10
@@ -108,16 +100,25 @@ class Q_list():
        
         #likleyhood that we try new spots
         if mode == "LEARNING" :
-            #print("LEARNING")
             self.is_learning = True
+            #MUST BE GREATER THAN 1
+            self.record_last_index = 1
             self.epsilon = 0.95
         else : 
+            
             self.is_learning = False
+            self.record_last_index = 3
             self.epsilon = 0.0001
         
+        _index_ = []
         
+        for i in range(self.record_last_index + 1):
+            _index_.append(i)
+        
+        # will store past actions
+        self.past_actions = pd.DataFrame(0,index=_index_, columns=['state', 'action'])
         self.q_list = pd.read_csv(path, index_col=0)
-        #print("Q-list generated from path : " + path)
+
 
         
       
@@ -125,21 +126,17 @@ class Q_list():
     
     """This will return the desired action accounting for Epsilon"""
     def get_max_action(self, state):
-        #print("state: " + str(state))
         if state >= self.min_state and state <= self.max_state:
             if rd.randint(0,100) > 100 * self.epsilon:
                 return self.q_list.loc[state].idxmax()
             else :
                 rand = rd.randint(1, 5)
-                print("action: " + str(rand))
                 return rand
         
     
     
     """This will set the reward for a given state. won't do any calculations"""
     def set_reward(self, state, action, last_reward):
-        print("BEFORE")
-        print(self.past_actions)
         if self.is_learning:
 
             for i in range(len(self.past_actions.index)):
@@ -149,7 +146,6 @@ class Q_list():
                 if st != 0:   
                     current_val = self.q_list.loc[st][str(ac)]
                     current_val = current_val + last_reward * self.gamma ** (self.record_last_index - i)
-                    print(current_val)
                     self.q_list.loc[st][str(ac)] = current_val
         if int(state) >= int(self.min_state) and int(state) <= int(self.max_state) and int(action) >= 1 and int(action) <= 5:
             
@@ -165,28 +161,23 @@ class Q_list():
                 
             self.past_actions.loc[self.record_last_index]['state'] = state
             self.past_actions.loc[self.record_last_index]['action'] = action
-            print("AFTER")
-            print(self.past_actions)
             return True
-        print("AFTER")
-        print(self.past_actions)
         return False
     
     
     def export_q_list(self):
-        print("q csv updated")
         self.q_list.to_csv(self.path)
-        #print("Q-List was successfully exported to path : " + self.path)
+        print("Q-List was successfully exported to path : " + self.path)
         
         
     def end_of_game(self):
         self.export_q_list()
-        #print("End of Game Funcitons Complete")
+        print("End of Game Funcitons Complete")
         
-#ql = Q_list("Army_Q.csv")  
+ql = Q_list("Army_Q.csv")  
 
-#ql.set_reward(11111, 1, 100)  
-#ql.set_reward(11112, 1, 100) 
-#ql.set_reward(11113, 2, 100) 
-#ql.set_reward(11114, 2, 100) 
-#ql.set_reward(11115, 3, 100) 
+ql.set_reward(11111, 1, 100)  
+ql.set_reward(11112, 1, 100) 
+ql.set_reward(11113, 2, 100) 
+ql.set_reward(11114, 2, 100) 
+ql.set_reward(11115, 3, 100) 
