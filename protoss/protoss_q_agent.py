@@ -256,7 +256,7 @@ class ProtossAgent(base_agent.BaseAgent):
         vk = self.ek-self.old_ek
         vl = self.old_un - self.un
         
-        reward = (vk-vl)*(vk-vl)*(vk-vl)/(math.log10(self.step_number))
+        reward = (vk-vl)*.01*(vk-vl)*.01*(vk-vl)*.01/(math.log10(self.step_number))
         
         return reward
     
