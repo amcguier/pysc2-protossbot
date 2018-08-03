@@ -17,9 +17,8 @@ Sources :
 
 import pandas as pd
 import random as rd
-#import tensorflow as tf
-#import numpy as np
 
+"""Generates a CSV to path 'name' with the state space that is defined by type_list"""
 def generate_csv(name, type_list='BASIC'): 
     if type_list == 'BASIC':
         state_list = []
@@ -39,13 +38,12 @@ def generate_csv(name, type_list='BASIC'):
         return True
     return False
    
-    
+#Scales that will convert unit types to new state space   
 scales = [[1,2,4,8,16], #Zealot
           [2,4,8,16,32], #Stalker
           [0,1,2,4,8], #Immortal
           [0,1,2,4,8], #Sentury
           [2700,5400,8100,13500,27000]] #Time
-
 
 """ Returns an array of scaled values in the format[zealot, stalker, immortal, sentury, time] """
 def get_scaled_value(typ, n_zealot=0, n_stalker=0, n_immortal=0, n_sentury= 0, time=0):
@@ -68,77 +66,57 @@ def get_scaled_value(typ, n_zealot=0, n_stalker=0, n_immortal=0, n_sentury= 0, t
 def get_unit_nums(data):
     out = list([0,0,0,0])
     for l1 in data:
-        if l1[0] == 73:
+        if l1[0] == 73: #API Zealot ID
             out[0] = l1[1]
-        elif l1[0] == 74:
+        elif l1[0] == 74: #API Stalker ID
             out[1] = l1[1]
-        elif l1[0] == 83:
+        elif l1[0] == 83: #API Immortal ID
             out[2] = l1[1]
-        elif l1[0] == 77:
+        elif l1[0] == 77: #API Sentury ID
             out[3] = l1[1]
     return out
     
 """ Q_List Driver Class"""
 class Q_list():
-    states = [10]
-    actions = [10]
-    index = 0
+    
+    """Initilize a Q-List. takeing data from the specefied path, with the given learning mode"""
     def __init__(self, path, mode='LEARNING'):
-        #rows(index) = states
-        #columns is actions
         self.path = path
-        self.min_state = 11111
-        self.max_state = 55555
-        
-
-        
-
-        #a number if you want to limit how many future steps are counted, -1 if you want no endpoint
-        self.recersive_units = 10
-        #how much each step into the future retains value
-        self.gamma = 0.8
+        self.min_state = 11111 #Minimum possible state in the given state space
+        self.max_state = 55555 #Maximum possible state in the given state space
+        self.gamma = 0.8 #how much each step into the future retains value, 1 - greediness
        
-        #likleyhood that we try new spots
         if mode == "LEARNING" :
             self.is_learning = True
-            #MUST BE GREATER THAN 1
-            self.record_last_index = 1
-            self.epsilon = 0.95
+            self.record_last_index = 1 #MUST BE GREATER THAN 1
+            self.epsilon = 0.95 #likleyhood that we try new actions
         else : 
-            
             self.is_learning = False
-            self.record_last_index = 3
-            self.epsilon = 0.0001
+            self.record_last_index = 3 #last index of 
+            self.epsilon = 0.0001 #likleyhood that we try new actions
         
         _index_ = []
-        
         for i in range(self.record_last_index + 1):
             _index_.append(i)
         
-        # will store past actions
-        self.past_actions = pd.DataFrame(0,index=_index_, columns=['state', 'action'])
-        self.q_list = pd.read_csv(path, index_col=0)
+        self.past_actions = pd.DataFrame(0,index=_index_, columns=['state', 'action'])#Stroes past actions
 
+        self.q_list = pd.read_csv(path, index_col=0) #columns is actions, rows(index) = states
 
-        
-      
-    
-    
     """This will return the desired action accounting for Epsilon"""
     def get_max_action(self, state):
-        if state >= self.min_state and state <= self.max_state:
-            if rd.randint(0,100) > 100 * self.epsilon:
-                return self.q_list.loc[state].idxmax()
+        if state >= self.min_state and state <= self.max_state: # Make sure the state is in the state space
+            #If a random number is less than the percent we act according to past rewards, otherwise do a random action
+            if rd.randint(0,100) > 100 * self.epsilon: 
+                return int(self.q_list.loc[state].idxmax())
             else :
                 rand = rd.randint(1, 5)
                 return rand
-        
-    
-    
+
     """This will set the reward for a given state. won't do any calculations"""
     def set_reward(self, state, action, last_reward):
         if self.is_learning:
-
+            
             for i in range(len(self.past_actions.index)):
                 st = self.past_actions.loc[i]['state']
                 ac = self.past_actions.loc[i]['action']
@@ -147,9 +125,9 @@ class Q_list():
                     current_val = self.q_list.loc[st][str(ac)]
                     current_val = current_val + last_reward * self.gamma ** (self.record_last_index - i)
                     self.q_list.loc[st][str(ac)] = current_val
+       
         if int(state) >= int(self.min_state) and int(state) <= int(self.max_state) and int(action) >= 1 and int(action) <= 5:
             
-
             for i in range(1, self.record_last_index + 1):
 
                 last_s = self.past_actions.loc[i]['state']
@@ -164,20 +142,13 @@ class Q_list():
             return True
         return False
     
-    
     def export_q_list(self):
         self.q_list.to_csv(self.path)
         print("Q-List was successfully exported to path : " + self.path)
-        
-        
+          
     def end_of_game(self):
+        print("Q-List at end of game: ")
+        print(self.q_list)
         self.export_q_list()
         print("End of Game Funcitons Complete")
         
-ql = Q_list("Army_Q.csv")  
-
-ql.set_reward(11111, 1, 100)  
-ql.set_reward(11112, 1, 100) 
-ql.set_reward(11113, 2, 100) 
-ql.set_reward(11114, 2, 100) 
-ql.set_reward(11115, 3, 100) 
