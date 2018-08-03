@@ -115,28 +115,27 @@ class Q_list():
 
     """This will set the reward for a given state. won't do any calculations"""
     def set_reward(self, state, action, last_reward):
-        if self.is_learning:
+        #This sets the additive reward for past actions
+        for i in range(len(self.past_actions.index)):
+            st = self.past_actions.loc[i]['state']
+            ac = self.past_actions.loc[i]['action']
             
-            for i in range(len(self.past_actions.index)):
-                st = self.past_actions.loc[i]['state']
-                ac = self.past_actions.loc[i]['action']
-            
-                if st != 0:   
-                    current_val = self.q_list.loc[st][str(ac)]
-                    current_val = current_val + last_reward * self.gamma ** (self.record_last_index - i)
-                    self.q_list.loc[st][str(ac)] = current_val
-       
+            if st != 0:   
+                current_val = self.q_list.loc[st][str(ac)]
+                current_val = current_val + last_reward * self.gamma ** (self.record_last_index - i)
+                self.q_list.loc[st][str(ac)] = current_val
+       #Make sure the new state is in state space
         if int(state) >= int(self.min_state) and int(state) <= int(self.max_state) and int(action) >= 1 and int(action) <= 5:
-            
+            #Reset indexes and over write 0th
             for i in range(1, self.record_last_index + 1):
-
+                #last action state pair
                 last_s = self.past_actions.loc[i]['state']
                 last_a = self.past_actions.loc[i]['action']
-                
+                #Shift by 1 index
                 self.past_actions.loc[i - 1]['state'] = last_s
                 self.past_actions.loc[i - 1]['action'] = last_a
             
-                
+            #Make the last index the current pair    
             self.past_actions.loc[self.record_last_index]['state'] = state
             self.past_actions.loc[self.record_last_index]['action'] = action
             return True
