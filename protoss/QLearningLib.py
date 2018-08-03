@@ -88,7 +88,7 @@ class Q_list():
        
         if mode == "LEARNING" :
             self.is_learning = True
-            self.record_last_index = 1 #MUST BE GREATER THAN 1
+            self.record_last_index = 1 #MUST BE AT LEAST 1
             self.epsilon = 0.95 #likleyhood that we try new actions
         else : 
             self.is_learning = False
