@@ -142,10 +142,12 @@ class Q_list():
             return True
         return False
     
+    """Update CSV to current state"""
     def export_q_list(self):
         self.q_list.to_csv(self.path)
         print("Q-List was successfully exported to path : " + self.path)
           
+    """Perform end of game functionality"""
     def end_of_game(self):
         print("Q-List at end of game: ")
         print(self.q_list)
