@@ -79,7 +79,7 @@ def get_unit_nums(data):
 """ Q_List Driver Class"""
 class Q_list():
     
-    """Initilize a Q-List. takeing data from the specefied path, with the given learning mode"""
+    """Initilize a Q-List. taking data from the specefied path, with the given learning mode"""
     def __init__(self, path, mode='LEARNING'):
         self.path = path
         self.min_state = 11111 #Minimum possible state in the given state space
